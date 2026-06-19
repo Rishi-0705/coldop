@@ -20,10 +20,16 @@ async function main() {
     create: { id: 1 },
   })
 
-  // ---- SavingsCounter ----
+  // ---- SavingsCounter (always reset to seed values) ----
   await db.savingsCounter.upsert({
     where: { id: 1 },
-    update: {},
+    update: {
+      tonightRM: 47.32,
+      thisWeekRM: 312.18,
+      thisMonthRM: 4821.55,
+      co2Tonnes: 2.34,
+      ghostLoadHours: 38.5,
+    },
     create: {
       id: 1,
       tonightRM: 47.32,

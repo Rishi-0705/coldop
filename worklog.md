@@ -134,3 +134,94 @@ Stage Summary:
 - ✅ Real-time UI updates via Socket.io
 - ✅ Lint clean, no console errors
 - Known limitations: SQLite (not TimescaleDB), in-process setback scheduler (not BullMQ), BMS is a simulator (not real Siemens Desigo), no auth (per demo decision)
+
+---
+Task ID: SPLIT-1
+Agent: code-splitter
+Task: Split the 1876-line `/home/z/my-project/src/app/page.tsx` (which OOM-crashed the Next.js dev server on browser load) into 7 focused component files + a slim ~189-line orchestrator page. Zero functional changes; pure file reorganization.
+
+Work Log:
+- Read `/home/z/my-project/worklog.md` for project context (ColdOps single-`/` Next.js 16 app, emerald theme, mini-services on :3003/:3004, Marigold seed).
+- Read the full 1876-line `src/app/page.tsx` (in 4 chunks via Read offset/limit) and mapped every component, every prop interface, every import.
+- Verified `@/lib/coldops/types` exports (ViewKey, Savings, Severity, ActiveSetback, etc.) and `@/lib/coldops/ui` helpers (severityColor, roomStatusColor, formatRM, formatKW, formatTemp, formatDuration, timeAgo, channelIcon) are unchanged.
+- Confirmed `eslint.config.mjs` disables `no-unused-vars` (so the pre-existing `onNeedMeter` unused-destructure in `CommandCenter` would not flag — preserved exactly as-is to keep API identical).
+- Created `/home/z/my-project/src/components/coldops/` directory and wrote 7 component files, each starting with `'use client'`:
+
+  1. **`shared.tsx`** (330 lines) — `TopBar`, `StatusPill`, `Footer`, `LoadingState`, `KpiCard`, `RoiCard`, `Legend`, `Metric`, `SeverityTabs`, `ChannelIcon`, `ActiveSetbackCard`, plus `export type { ViewKey }` re-export. Imports lucide icons (Activity, MapIcon, ClipboardList, Bell, Snowflake, TrendingDown, Server, Radio, RefreshCw, ArrowRight, ThermometerSun, Loader2, Smartphone, Mail, MessageSquare, BarChart3, Calendar), shadcn Card/CardContent/Button/Badge/Progress/Separator/Tooltip*, types Savings/Severity/ViewKey/ActiveSetback, ui helpers formatRM/formatKW.
+
+  2. **`command-center.tsx`** (294 lines) — `CommandCenter` (props: dashboard, rooms, activeSetbacks, meterData, onNeedMeter — interface preserved verbatim including the unused `onNeedMeter`) + private `GhostLoadChart`. Imports KpiCard + ActiveSetbackCard from `./shared`, recharts AreaChart primitives, severityColor/roomStatusColor/formatRM/formatKW/formatTemp/formatDuration/timeAgo.
+
+  3. **`cold-room-map.tsx`** (305 lines) — `ColdRoomMap` + private `FloorPlan` + `RoomDetailCard`. Imports Legend + Metric from `./shared`. Uses useState, toast, fetch('/api/consolidation/execute').
+
+  4. **`work-orders.tsx`** (184 lines) — `WorkOrdersView` + `WorkOrderCard`. Imports ActiveSetbackCard from `./shared`. Uses useState, toast, fetch('/api/work-orders/:id/complete').
+
+  5. **`notifications.tsx`** (139 lines) — `NotificationsView`. Imports SeverityTabs + ChannelIcon from `./shared`. Uses useState, toast, fetch('/api/notifications/:id/:action').
+
+  6. **`analytics.tsx`** (293 lines) — `AnalyticsView` + private `GhostLoadHeatmap` + `SavingsTrendChart` + `EnergyMixChart`. Imports RoiCard from `./shared`. Recharts BarChart + Cell + TooltipProvider for heatmap cells. (Caught and fixed a missed Tooltip* import during self-review.)
+
+  7. **`schedule.tsx`** (239 lines) — `ScheduleView`. Imports Tooltip* for batch/ghost-window hover cards. Uses formatRM.
+
+- Rewrote **`src/app/page.tsx`** down to **189 lines** as a pure orchestrator: imports all 6 view components + `TopBar`/`Footer`/`LoadingState` from `./shared`, `useRealtimeEvent`/`useRealtimeConnection` from `@/hooks/use-realtime`, types from `@/lib/coldops/types`. Preserves every state hook (view, dashboard, rooms, notifs, workOrders, plan, activeSetbacks, analytics, meterData, setbackHistory, schedule, loading, notifCounts, bmsOnline, realtimeConnected, tick), all four fetch callbacks (fetchAll, fetchAnalytics, fetchMeter, fetchSchedule), all three useEffect blocks (initial load + 8s tick, view-driven fetch, realtime-conn sync), all 9 `useRealtimeEvent` subscriptions (savings-updated, notification-new, notification-updated, setback-progress, setback-completed, setback-aborted, work-order-completed, work-order-updated, ghost-load-detected, room-status-changed), and the exact view-switch render tree with identical props passed to each view component. Removed `useRef` import (was only used by the old in-file GhostLoadChart, no longer needed at the page level). Re-added `ViewKey` type import for the `useState<ViewKey>` generic.
+- Ran `bun run lint` → **clean exit 0, zero warnings**.
+- Started dev server with the exact command from the task spec: `cd /home/z/my-project && setsid /tmp/start-dev.sh > /dev/null 2>&1 < /dev/null &`. (First detachment attempts using `setsid bash -c '...' &` + `disown` left the next-server process getting SIGHUP'd when the bash subshell exited — switching to the inline `setsid /tmp/start-dev.sh &` form re-parented cleanly to init and survived.)
+- Verified via `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` → **HTTP 200** (first-load compile ~2.4s, subsequent cached loads ~40-70ms).
+- `dev.log` shows full successful client-side boot sequence with zero errors: `GET / 200`, then parallel `GET /api/{dashboard,rooms,notifications,work-orders,consolidation,setback/active}` all returning 200, then `GET / 200` again at 43ms. Page renders the full 36KB HTML shell.
+- Dev server stable: PIDs 8842 (bun run dev) + 8858 (next-server) both alive, parented to PID 1.
+
+Stage Summary:
+- Artifacts produced (all under `/home/z/my-project/src/`):
+  - `app/page.tsx` — **189 lines** (down from 1876, ~10× smaller)
+  - `components/coldops/shared.tsx` — 330 lines
+  - `components/coldops/command-center.tsx` — 294 lines
+  - `components/coldops/cold-room-map.tsx` — 305 lines
+  - `components/coldops/work-orders.tsx` — 184 lines
+  - `components/coldops/notifications.tsx` — 139 lines
+  - `components/coldops/analytics.tsx` — 293 lines
+  - `components/coldops/schedule.tsx` — 239 lines
+  - Total: 1973 lines across 8 files (was 1876 in 1 file — the +97 lines are per-file imports/`'use client'` headers, an acceptable overhead for the per-module Hot-Module-Replacement granularity Turbopack now gets).
+- Largest single file is now 330 lines (shared.tsx) — well under any reasonable OOM threshold for Turbopack's per-module compiler cache.
+- ✅ `bun run lint` clean (exit 0)
+- ✅ Dev server responds HTTP 200 on `/` (both fresh compile and cached)
+- ✅ All `/api/*` endpoints continue to respond 200 (server-side code untouched)
+- ✅ All component prop interfaces preserved verbatim (CommandCenter's `onNeedMeter` quirk kept as-is per "no functional changes" rule)
+- ✅ All realtime subscriptions, all useEffect hooks, all 6 views, all sub-components (GhostLoadChart, FloorPlan, RoomDetailCard, WorkOrderCard, GhostLoadHeatmap, SavingsTrendChart, EnergyMixChart, KpiCard, RoiCard, Metric, Legend, SeverityTabs, ChannelIcon, StatusPill, ActiveSetbackCard) preserved with identical behavior
+- No styling changes, no renamed exports, no removed features.
+
+---
+Task ID: 6 (Analytics + Schedule + Refactor)
+Agent: orchestrator (main) + full-stack-developer (split)
+Task: Add Analytics view (heatmap + ROI + savings trend + setback history), Production Schedule view (Gantt + ghost windows), real meter data API, fix memory crash by splitting page.tsx.
+
+Work Log:
+- Added 4 new API routes:
+  • /api/meter-readings — returns 6h time-series power data (timeline + per-room current) from real DB readings
+  • /api/analytics — returns 24h×8room ghost load heatmap, 30-day savings trend, ROI calculation (SaaS cost vs savings), top ghost rooms, energy mix by zone
+  • /api/setbacks — returns setback history with estRmSaved calculation
+  • /api/production-schedule — returns batch schedules + computed ghost load windows (idle gaps ≥2h)
+- Added AnalyticsView component: 4 ROI cards (monthly savings, payback period, annual net benefit, CO2 avoided), 24-hour ghost load heatmap (8 rooms × 24 hours, color-coded red/blue/green with tooltips), 30-day savings trend bar chart, energy mix by zone horizontal bar chart, top ghost load rooms ranking, setback history table
+- Added ScheduleView component: Production Gantt chart (last 12h → next 24h) with green production bars + red dashed ghost load windows + "now" line, detected ghost load windows summary cards with RM waste estimates, upcoming batches grid
+- Updated CommandCenter's GhostLoadChart to use real meter data from /api/meter-readings instead of hardcoded synthetic data
+- Fixed seed to properly reset SavingsCounter on re-seed (was using upsert with empty update)
+- Fixed BMS simulator seed for CR-01/CR-02 to show high power (matching ghost load story) + added heat infiltration simulation
+- Fixed ScheduleView Date serialization bug (API returns ISO strings, component was calling .getTime() on strings — wrapped in new Date())
+- Split 1876-line page.tsx into 8 files to fix OOM crash:
+  • src/app/page.tsx (189 lines — slim orchestrator)
+  • src/components/coldops/shared.tsx (330 lines — TopBar, Footer, KPI cards, etc.)
+  • src/components/coldops/command-center.tsx (294 lines)
+  • src/components/coldops/cold-room-map.tsx (305 lines)
+  • src/components/coldops/work-orders.tsx (184 lines)
+  • src/components/coldops/notifications.tsx (139 lines)
+  • src/components/coldops/analytics.tsx (293 lines)
+  • src/components/coldops/schedule.tsx (239 lines)
+- Browser verification: all 6 views render without errors, approve→setback flow works end-to-end, analytics heatmap displays correctly, schedule Gantt renders with ghost windows
+
+Stage Summary:
+- ✅ 6 views total (Command Center, Cold Room Map, Work Orders, Notifications, Analytics, Schedule)
+- ✅ Real meter data drives the Command Center chart (not hardcoded)
+- ✅ 24h ghost load heatmap — a core deliverable from the original brief
+- ✅ ROI calculator showing payback period (investor-ready)
+- ✅ Production Gantt with ghost load window detection
+- ✅ Setback history with RM saved per event
+- ✅ Page split into 8 files — no more OOM crashes
+- ✅ Lint clean, no console errors
+- Next opportunities: Settings/Admin page, WMS stock browser, export/report generation, framer-motion transitions

@@ -1,0 +1,1877 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { useEffect, useState, useCallback, useRef } from 'react'
+     4→     4→import {
+     5→     5→  Activity, Map as MapIcon, ClipboardList, Bell, Snowflake, Zap, TrendingDown,
+     6→     6→  Leaf, AlertTriangle, CheckCircle2, Clock, ArrowRight, ArrowLeftRight,
+     7→     7→  ThermometerSun, Gauge, Radio, Server, ChevronRight, Filter, X, Check,
+     8→     8→  Smartphone, Mail, MessageSquare, Loader2, Power, RefreshCw, Package,
+     9→     9→  ArrowDownToLine, ArrowUpFromLine, CircleDot, Layers, BarChart3, Calendar,
+    10→    10→  Flame, DollarSign, Target, TrendingUp, Factory, Timer
+    11→    11→} from 'lucide-react'
+    12→    12→import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+    13→    13→import { Button } from '@/components/ui/button'
+    14→    14→import { Badge } from '@/components/ui/badge'
+    15→    15→import { Progress } from '@/components/ui/progress'
+    16→    16→import { Separator } from '@/components/ui/separator'
+    17→    17→import { ScrollArea } from '@/components/ui/scroll-area'
+    18→    18→import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+    19→    19→import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+    20→    20→import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+    21→    21→import { toast } from 'sonner'
+    22→    22→import {
+    23→    23→  AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+    24→    24→  Tooltip as RTooltip, ResponsiveContainer, ReferenceLine, Cell
+    25→    25→} from 'recharts'
+    26→    26→import { useRealtimeEvent, useRealtimeConnection } from '@/hooks/use-realtime'
+    27→    27→import type {
+    28→    28→  DashboardData, RoomWithBms, Notification, WorkOrder, ConsolidationPlan,
+    29→    29→  ActiveSetback, Severity, ViewKey, Savings, AnalyticsData, MeterData,
+    30→    30→  SetbackHistoryItem, ProductionScheduleData
+    31→    31→} from '@/lib/coldops/types'
+    32→    32→import {
+    33→    33→  severityColor, roomStatusColor, formatRM, formatKW, formatTemp,
+    34→    34→  formatDuration, timeAgo, channelIcon
+    35→    35→} from '@/lib/coldops/ui'
+    36→    36→
+    37→    37→// ============================================================================
+    38→    38→// MAIN PAGE
+    39→    39→// ============================================================================
+    40→    40→
+    41→    41→export default function ColdOpsPage() {
+    42→    42→  const [view, setView] = useState<ViewKey>('command')
+    43→    43→  const [dashboard, setDashboard] = useState<DashboardData | null>(null)
+    44→    44→  const [rooms, setRooms] = useState<RoomWithBms[]>([])
+    45→    45→  const [notifs, setNotifs] = useState<Notification[]>([])
+    46→    46→  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
+    47→    47→  const [plan, setPlan] = useState<ConsolidationPlan | null>(null)
+    48→    48→  const [activeSetbacks, setActiveSetbacks] = useState<ActiveSetback[]>([])
+    49→    49→  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+    50→    50→  const [meterData, setMeterData] = useState<MeterData | null>(null)
+    51→    51→  const [setbackHistory, setSetbackHistory] = useState<SetbackHistoryItem[]>([])
+    52→    52→  const [schedule, setSchedule] = useState<ProductionScheduleData | null>(null)
+    53→    53→  const [loading, setLoading] = useState(true)
+    54→    54→  const [notifCounts, setNotifCounts] = useState<Record<string, number>>({ CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 })
+    55→    55→  const [bmsOnline, setBmsOnline] = useState(true)
+    56→    56→  const [realtimeConnected, setRealtimeConnected] = useState(false)
+    57→    57→  const [tick, setTick] = useState(0)
+    58→    58→
+    59→    59→  const fetchAll = useCallback(async () => {
+    60→    60→    try {
+    61→    61→      const [d, r, n, w, c, s, bh] = await Promise.all([
+    62→    62→        fetch('/api/dashboard').then(r => r.json()),
+    63→    63→        fetch('/api/rooms').then(r => r.json()),
+    64→    64→        fetch('/api/notifications').then(r => r.json()),
+    65→    65→        fetch('/api/work-orders').then(r => r.json()),
+    66→    66→        fetch('/api/consolidation').then(r => r.json()),
+    67→    67→        fetch('/api/setback/active').then(r => r.json()),
+    68→    68→        fetch('/api/bms-health').then(r => r.json()),
+    69→    69→      ])
+    70→    70→      setDashboard(d)
+    71→    71→      setRooms(r.rooms || [])
+    72→    72→      setNotifs(n.notifications || [])
+    73→    73→      setNotifCounts(n.counts || {})
+    74→    74→      setWorkOrders(w.workOrders || [])
+    75→    75→      setPlan(c.plan)
+    76→    76→      setActiveSetbacks(s.active || [])
+    77→    77→      setBmsOnline(bh.online)
+    78→    78→    } catch (e) {
+    79→    79→      console.error('fetch failed', e)
+    80→    80→    } finally {
+    81→    81→      setLoading(false)
+    82→    82→    }
+    83→    83→  }, [])
+    84→    84→
+    85→    85→  // Fetch analytics data when analytics view is opened
+    86→    86→  const fetchAnalytics = useCallback(async () => {
+    87→    87→    try {
+    88→    88→      const [a, m, sh] = await Promise.all([
+    89→    89→        fetch('/api/analytics').then(r => r.json()),
+    90→    90→        fetch('/api/meter-readings?hours=6').then(r => r.json()),
+    91→    91→        fetch('/api/setbacks').then(r => r.json()),
+    92→    92→      ])
+    93→    93→      setAnalytics(a)
+    94→    94→      setMeterData(m)
+    95→    95→      setSetbackHistory(sh.setbacks || [])
+    96→    96→    } catch (e) {
+    97→    97→      console.error('analytics fetch failed', e)
+    98→    98→    }
+    99→    99→  }, [])
+   100→   100→
+   101→   101→  // Fetch meter data for the Command Center chart
+   102→   102→  const fetchMeter = useCallback(async () => {
+   103→   103→    try {
+   104→   104→      const m = await fetch('/api/meter-readings?hours=6').then(r => r.json())
+   105→   105→      setMeterData(m)
+   106→   106→    } catch (e) {
+   107→   107→      console.error('meter fetch failed', e)
+   108→   108→    }
+   109→   109→  }, [])
+   110→   110→
+   111→   111→  // Fetch schedule data when schedule view is opened
+   112→   112→  const fetchSchedule = useCallback(async () => {
+   113→   113→    try {
+   114→   114→      const s = await fetch('/api/production-schedule').then(r => r.json())
+   115→   115→      setSchedule(s)
+   116→   116→    } catch (e) {
+   117→   117→      console.error('schedule fetch failed', e)
+   118→   118→    }
+   119→   119→  }, [])
+   120→   120→
+   121→   121→  useEffect(() => {
+   122→   122→    if (view === 'analytics' && !analytics) fetchAnalytics()
+   123→   123→    if (view === 'schedule' && !schedule) fetchSchedule()
+   124→   124→  }, [view, analytics, schedule, fetchAnalytics, fetchSchedule])
+   125→   125→
+   126→   126→  useEffect(() => {
+   127→   127→    fetchAll()
+   128→   128→    fetchMeter()
+   129→   129→    const interval = setInterval(() => setTick(t => t + 1), 8000)
+   130→   130→    return () => clearInterval(interval)
+   131→   131→  }, [fetchAll, fetchMeter])
+   132→   132→
+   133→   133→  useEffect(() => {
+   134→   134→    if (tick > 0) fetchAll()
+   135→   135→  }, [tick, fetchAll])
+   136→   136→
+   137→   137→  // Real-time events
+   138→   138→  const conn = useRealtimeConnection()
+   139→   139→  useEffect(() => setRealtimeConnected(conn), [conn])
+   140→   140→
+   141→   141→  useRealtimeEvent('savings-updated', (p: Partial<Savings>) => {
+   142→   142→    setDashboard(d => d ? { ...d, savings: { ...d.savings, ...p } as Savings } : d)
+   143→   143→  })
+   144→   144→  useRealtimeEvent('notification-new', (n: Notification) => {
+   145→   145→    setNotifs(prev => [n, ...prev])
+   146→   146→    setNotifCounts(prev => ({ ...prev, [n.severity]: (prev[n.severity] || 0) + 1 }))
+   147→   147→    toast.info(`New ${n.severity.toLowerCase()} alert: ${n.title}`)
+   148→   148→  })
+   149→   149→  useRealtimeEvent('notification-updated', (p: { id: string; status: string }) => {
+   150→   150→    setNotifs(prev => prev.map(n => n.id === p.id ? { ...n, status: p.status as Notification['status'] } : n))
+   151→   151→    fetchAll()
+   152→   152→  })
+   153→   153→  useRealtimeEvent('setback-progress', () => {
+   154→   154→    fetch('/api/setback/active').then(r => r.json()).then(s => setActiveSetbacks(s.active || []))
+   155→   155→  })
+   156→   156→  useRealtimeEvent('setback-completed', (p: { setbackId: string }) => {
+   157→   157→    setActiveSetbacks(prev => prev.filter(s => s.setbackId !== p.setbackId))
+   158→   158→    toast.success(`Setback completed — savings accumulating`)
+   159→   159→    fetchAll()
+   160→   160→  })
+   161→   161→  useRealtimeEvent('setback-aborted', (p: { setbackId: string; reason: string }) => {
+   162→   162→    setActiveSetbacks(prev => prev.filter(s => s.setbackId !== p.setbackId))
+   163→   163→    toast.error(`Setback aborted: ${p.reason}`)
+   164→   164→    fetchAll()
+   165→   165→  })
+   166→   166→  useRealtimeEvent('work-order-completed', () => {
+   167→   167→    fetchAll()
+   168→   168→    toast.success('Work order completed')
+   169→   169→  })
+   170→   170→  useRealtimeEvent('work-order-updated', () => fetchAll())
+   171→   171→  useRealtimeEvent('ghost-load-detected', () => fetchAll())
+   172→   172→  useRealtimeEvent('room-status-changed', () => fetchAll())
+   173→   173→
+   174→   174→  return (
+   175→   175→    <div className="min-h-screen flex flex-col bg-background">
+   176→   176→      <TopBar
+   177→   177→        view={view}
+   178→   178→        onView={setView}
+   179→   179→        notifCounts={notifCounts}
+   180→   180→        bmsOnline={bmsOnline}
+   181→   181→        realtimeConnected={realtimeConnected}
+   182→   182→        savings={dashboard?.savings}
+   183→   183→        onRefresh={() => { setLoading(true); fetchAll() }}
+   184→   184→      />
+   185→   185→      <main className="flex-1 container mx-auto px-4 py-6 max-w-[1600px]">
+   186→   186→        {loading && !dashboard ? (
+   187→   187→          <LoadingState />
+   188→   188→        ) : view === 'command' ? (
+   189→   189→          <CommandCenter dashboard={dashboard} rooms={rooms} activeSetbacks={activeSetbacks} meterData={meterData} onNeedMeter={fetchMeter} />
+   190→   190→        ) : view === 'map' ? (
+   191→   191→          <ColdRoomMap rooms={rooms} plan={plan} onExecutePlan={fetchAll} />
+   192→   192→        ) : view === 'workorders' ? (
+   193→   193→          <WorkOrdersView workOrders={workOrders} activeSetbacks={activeSetbacks} onComplete={fetchAll} />
+   194→   194→        ) : view === 'notifications' ? (
+   195→   195→          <NotificationsView notifs={notifs} counts={notifCounts} onAction={fetchAll} />
+   196→   196→        ) : view === 'analytics' ? (
+   197→   197→          <AnalyticsView analytics={analytics} meterData={meterData} setbackHistory={setbackHistory} onRefresh={fetchAnalytics} />
+   198→   198→        ) : (
+   199→   199→          <ScheduleView schedule={schedule} onRefresh={fetchSchedule} />
+   200→   200→        )}
+   201→   201→      </main>
+   202→   202→      <Footer />
+   203→   203→    </div>
+   204→   204→  )
+   205→   205→}
+   206→   206→
+   207→   207→// ============================================================================
+   208→   208→// TOP BAR
+   209→   209→// ============================================================================
+   210→   210→
+   211→   211→function TopBar({
+   212→   212→  view, onView, notifCounts, bmsOnline, realtimeConnected, savings, onRefresh,
+   213→   213→}: {
+   214→   214→  view: ViewKey
+   215→   215→  onView: (v: ViewKey) => void
+   216→   216→  notifCounts: Record<string, number>
+   217→   217→  bmsOnline: boolean
+   218→   218→  realtimeConnected: boolean
+   219→   219→  savings?: Savings
+   220→   220→  onRefresh: () => void
+   221→   221→}) {
+   222→   222→  const totalOpen = Object.values(notifCounts).reduce((a, b) => a + b, 0)
+   223→   223→  const nav: { key: ViewKey; label: string; icon: any }[] = [
+   224→   224→    { key: 'command', label: 'Command Center', icon: Activity },
+   225→   225→    { key: 'map', label: 'Cold Room Map', icon: MapIcon },
+   226→   226→    { key: 'workorders', label: 'Work Orders', icon: ClipboardList },
+   227→   227→    { key: 'notifications', label: 'Notifications', icon: Bell },
+   228→   228→    { key: 'analytics', label: 'Analytics', icon: BarChart3 },
+   229→   229→    { key: 'schedule', label: 'Schedule', icon: Calendar },
+   230→   230→  ]
+   231→   231→  return (
+   232→   232→    <header className="sticky top-0 z-40 border-b border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+   233→   233→      <div className="container mx-auto px-4 max-w-[1600px]">
+   234→   234→        <div className="flex h-16 items-center gap-4">
+   235→   235→          {/* Logo + brand */}
+   236→   236→          <div className="flex items-center gap-3">
+   237→   237→            <div className="grid place-items-center h-9 w-9 rounded-lg bg-primary text-primary-foreground shadow-sm">
+   238→   238→              <Snowflake className="h-5 w-5" />
+   239→   239→            </div>
+   240→   240→            <div className="hidden sm:block">
+   241→   241→              <div className="text-base font-semibold leading-tight">ColdOps</div>
+   242→   242→              <div className="text-[11px] text-muted-foreground leading-tight">Marigold PJ Factory · Live</div>
+   243→   243→            </div>
+   244→   244→          </div>
+   245→   245→
+   246→   246→          {/* Nav */}
+   247→   247→          <nav className="flex items-center gap-1 mx-auto">
+   248→   248→            {nav.map(n => {
+   249→   249→              const Icon = n.icon
+   250→   250→              const active = view === n.key
+   251→   251→              const badge = n.key === 'notifications' && totalOpen > 0 ? totalOpen : null
+   252→   252→              return (
+   253→   253→                <Button
+   254→   254→                  key={n.key}
+   255→   255→                  variant={active ? 'default' : 'ghost'}
+   256→   256→                  size="sm"
+   257→   257→                  className={`relative h-9 gap-2 ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+   258→   258→                  onClick={() => onView(n.key)}
+   259→   259→                >
+   260→   260→                  <Icon className="h-4 w-4" />
+   261→   261→                  <span className="hidden md:inline">{n.label}</span>
+   262→   262→                  {badge !== null && (
+   263→   263→                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 grid place-items-center text-[10px] font-bold rounded-full bg-red-500 text-white ring-2 ring-card">
+   264→   264→                      {badge}
+   265→   265→                    </span>
+   266→   266→                  )}
+   267→   267→                </Button>
+   268→   268→              )
+   269→   269→            })}
+   270→   270→          </nav>
+   271→   271→
+   272→   272→          {/* Status pills */}
+   273→   273→          <div className="flex items-center gap-2">
+   274→   274→            {savings && (
+   275→   275→              <TooltipProvider>
+   276→   276→                <Tooltip>
+   277→   277→                  <TooltipTrigger asChild>
+   278→   278→                    <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
+   279→   279→                      <TrendingDown className="h-3.5 w-3.5" />
+   280→   280→                      {formatRM(savings.tonightRM)}
+   281→   281→                      <span className="text-emerald-500/70 font-normal">tonight</span>
+   282→   282→                    </div>
+   283→   283→                  </TooltipTrigger>
+   284→   284→                  <TooltipContent side="bottom">
+   285→   285→                    <div className="text-xs space-y-0.5">
+   286→   286→                      <div>Tonight: <b>{formatRM(savings.tonightRM)}</b></div>
+   287→   287→                      <div>This week: <b>{formatRM(savings.thisWeekRM)}</b></div>
+   288→   288→                      <div>This month: <b>{formatRM(savings.thisMonthRM)}</b></div>
+   289→   289→                      <div>CO₂ avoided: <b>{savings.co2Tonnes.toFixed(2)} t</b></div>
+   290→   290→                    </div>
+   291→   291→                  </TooltipContent>
+   292→   292→                </Tooltip>
+   293→   293→              </TooltipProvider>
+   294→   294→            )}
+   295→   295→
+   296→   296→            <StatusPill
+   297→   297→              ok={bmsOnline}
+   298→   298→              okLabel="BMS"
+   299→   299→              okIcon={Server}
+   300→   300→              badLabel="BMS off"
+   301→   301→              badIcon={Server}
+   302→   302→            />
+   303→   303→            <StatusPill
+   304→   304→              ok={realtimeConnected}
+   305→   305→              okLabel="Live"
+   306→   306→              okIcon={Radio}
+   307→   307→              badLabel="Offline"
+   308→   308→              badIcon={Radio}
+   309→   309→            />
+   310→   310→            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRefresh}>
+   311→   311→              <RefreshCw className="h-3.5 w-3.5" />
+   312→   312→            </Button>
+   313→   313→          </div>
+   314→   314→        </div>
+   315→   315→      </div>
+   316→   316→    </header>
+   317→   317→  )
+   318→   318→}
+   319→   319→
+   320→   320→function StatusPill({ ok, okLabel, okIcon, badLabel, badIcon }: { ok: boolean; okLabel: string; okIcon: any; badLabel: string; badIcon: any }) {
+   321→   321→  const Icon = ok ? okIcon : badIcon
+   322→   322→  return (
+   323→   323→    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-medium border ${ok ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-zinc-100 border-zinc-300 text-zinc-500'}`}>
+   324→   324→      <Icon className="h-3 w-3" />
+   325→   325→      <span className="hidden sm:inline">{ok ? okLabel : badLabel}</span>
+   326→   326→      <span className={`h-1.5 w-1.5 rounded-full ${ok ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
+   327→   327→    </div>
+   328→   328→  )
+   329→   329→}
+   330→   330→
+   331→   331→function Footer() {
+   332→   332→  return (
+   333→   333→    <footer className="mt-auto border-t border-border/60 bg-card/50">
+   334→   334→      <div className="container mx-auto px-4 py-4 max-w-[1600px]">
+   335→   335→        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+   336→   336→          <div className="flex items-center gap-2">
+   337→   337→            <Snowflake className="h-3.5 w-3.5 text-primary" />
+   338→   338→            <span><b className="text-foreground">ColdOps</b> v1.0 · White-label SaaS by Double Dot Solutions Sdn Bhd</span>
+   339→   339→          </div>
+   340→   340→          <div className="flex items-center gap-3">
+   341→   341→            <span>TNB Tariff: RM 0.509/kWh</span>
+   342→   342→            <span className="hidden sm:inline">·</span>
+   343→   343→            <span className="hidden sm:inline">CO₂ factor: 0.583 kg/kWh</span>
+   344→   344→            <span className="hidden sm:inline">·</span>
+   345→   345→            <span>ap-southeast-1 (SG)</span>
+   346→   346→          </div>
+   347→   347→        </div>
+   348→   348→      </div>
+   349→   349→    </footer>
+   350→   350→  )
+   351→   351→}
+   352→   352→
+   353→   353→function LoadingState() {
+   354→   354→  return (
+   355→   355→    <div className="grid place-items-center h-[60vh]">
+   356→   356→      <div className="flex flex-col items-center gap-3">
+   357→   357→        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+   358→   358→        <div className="text-sm text-muted-foreground">Loading ColdOps dashboard…</div>
+   359→   359→      </div>
+   360→   360→    </div>
+   361→   361→  )
+   362→   362→}
+   363→   363→
+   364→   364→// ============================================================================
+   365→   365→// VIEW: COMMAND CENTER
+   366→   366→// ============================================================================
+   367→   367→
+   368→   368→function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onNeedMeter }: { dashboard: DashboardData | null; rooms: RoomWithBms[]; activeSetbacks: ActiveSetback[]; meterData: MeterData | null; onNeedMeter: () => void }) {
+   369→   369→  if (!dashboard) return null
+   370→   370→  const { savings, kpis, activeGhosts, topNotifications, config } = dashboard
+   371→   371→
+   372→   372→  return (
+   373→   373→    <div className="space-y-6">
+   374→   374→      {/* Hero KPI strip */}
+   375→   375→      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+   376→   376→        <KpiCard
+   377→   377→          icon={Zap}
+   378→   378→          label="Ghost Load This Period"
+   379→   379→          value={formatRM(kpis.ghostLoadRM)}
+   380→   380→          sub={`${kpis.ghostLoadCount} events · ${formatDuration(kpis.ghostLoadHours)}`}
+   381→   381→          tone="ghost"
+   382→   382→        />
+   383→   383→        <KpiCard
+   384→   384→          icon={TrendingDown}
+   385→   385→          label="Savings This Month"
+   386→   386→          value={formatRM(savings.thisMonthRM)}
+   387→   387→          sub={`Tonight: ${formatRM(savings.tonightRM)}`}
+   388→   388→          tone="optimized"
+   389→   389→        />
+   390→   390→        <KpiCard
+   391→   391→          icon={Leaf}
+   392→   392→          label="CO₂ Avoided"
+   393→   393→          value={`${savings.co2Tonnes.toFixed(2)} t`}
+   394→   394→          sub={`≈ ${(savings.co2Tonnes * 4.5).toFixed(0)} trees / mo`}
+   395→   395→          tone="active"
+   396→   396→        />
+   397→   397→        <KpiCard
+   398→   398→          icon={AlertTriangle}
+   399→   399→          label="Worst Offender"
+   400→   400→          value={kpis.worstOffender?.roomCode || '—'}
+   401→   401→          sub={kpis.worstOffender ? `${formatKW(kpis.worstOffender.actualKW)} · ${formatRM(kpis.worstOffender.rmPerHour)}/hr` : 'No active ghost load'}
+   402→   402→          tone="ghost"
+   403→   403→        />
+   404→   404→      </div>
+   405→   405→
+   406→   406→      {/* Main grid */}
+   407→   407→      <div className="grid gap-4 lg:grid-cols-3">
+   408→   408→        {/* Live savings + ghost trend */}
+   409→   409→        <Card className="lg:col-span-2 border-border/60">
+   410→   410→          <CardHeader className="pb-2">
+   411→   411→            <div className="flex items-start justify-between">
+   412→   412→              <div>
+   413→   413→                <CardTitle className="text-base flex items-center gap-2">
+   414→   414→                  <Activity className="h-4 w-4 text-primary" />
+   415→   415→                  Live Energy & Ghost Load Timeline
+   416→   416→                </CardTitle>
+   417→   417→                <CardDescription className="text-xs">
+   418→   418→                  Last 6 hours · 15-minute intervals · TNB tariff {formatRM(config?.tnbTariffRM || 0.509)}/kWh
+   419→   419→                </CardDescription>
+   420→   420→              </div>
+   421→   421→              <Badge variant="outline" className="text-[10px] font-normal">Real-time</Badge>
+   422→   422→            </div>
+   423→   423→          </CardHeader>
+   424→   424→          <CardContent>
+   425→   425→            <GhostLoadChart meterData={meterData} />
+   426→   426→          </CardContent>
+   427→   427→        </Card>
+   428→   428→
+   429→   429→        {/* Active ghost loads */}
+   430→   430→        <Card className="border-border/60">
+   431→   431→          <CardHeader className="pb-2">
+   432→   432→            <CardTitle className="text-base flex items-center gap-2">
+   433→   433→              <Zap className="h-4 w-4 text-red-500" />
+   434→   434→              Active Ghost Loads
+   435→   435→            </CardTitle>
+   436→   436→            <CardDescription className="text-xs">Compressors running without production</CardDescription>
+   437→   437→          </CardHeader>
+   438→   438→          <CardContent>
+   439→   439→            {activeGhosts.length === 0 ? (
+   440→   440→              <div className="text-sm text-muted-foreground py-8 text-center">
+   441→   441→                <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+   442→   442→                No active ghost loads. System optimal.
+   443→   443→              </div>
+   444→   444→            ) : (
+   445→   445→              <ScrollArea className="h-[260px] pr-2">
+   446→   446→                <div className="space-y-2">
+   447→   447→                  {activeGhosts.map(g => {
+   448→   448→                    const c = severityColor(g.severity)
+   449→   449→                    return (
+   450→   450→                      <div key={g.roomId} className={`rounded-lg border ${c.border} ${c.bg} p-3`}>
+   451→   451→                        <div className="flex items-start justify-between gap-2 mb-1">
+   452→   452→                          <div className="flex items-center gap-2">
+   453→   453→                            <span className={`h-2 w-2 rounded-full ${c.dot} animate-pulse`} />
+   454→   454→                            <span className="font-semibold text-sm">{g.roomCode}</span>
+   455→   455→                            <Badge variant="outline" className={`text-[10px] ${c.text} border-current`}>{g.severity}</Badge>
+   456→   456→                          </div>
+   457→   457→                          <div className="text-right">
+   458→   458→                            <div className={`text-sm font-bold ${c.text}`}>{formatRM(g.rmPerHour)}/hr</div>
+   459→   459→                          </div>
+   460→   460→                        </div>
+   461→   461→                        <div className="text-xs text-muted-foreground mb-2">{g.roomName}</div>
+   462→   462→                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+   463→   463→                          <div>
+   464→   464→                            <div className="text-muted-foreground">Actual</div>
+   465→   465→                            <div className="font-medium">{formatKW(g.actualKW)}</div>
+   466→   466→                          </div>
+   467→   467→                          <div>
+   468→   468→                            <div className="text-muted-foreground">Idle base</div>
+   469→   469→                            <div className="font-medium">{formatKW(g.expectedIdleKW)}</div>
+   470→   470→                          </div>
+   471→   471→                          <div>
+   472→   472→                            <div className="text-muted-foreground">Duration</div>
+   473→   473→                            <div className="font-medium">{formatDuration(g.durationHours)}</div>
+   474→   474→                          </div>
+   475→   475→                        </div>
+   476→   476→                        <div className="mt-2 text-[10px] text-muted-foreground font-mono">Rule: {g.rule.replace(/_/g, ' ')}</div>
+   477→   477→                      </div>
+   478→   478→                    )
+   479→   479→                  })}
+   480→   480→                </div>
+   481→   481→              </ScrollArea>
+   482→   482→            )}
+   483→   483→          </CardContent>
+   484→   484→        </Card>
+   485→   485→      </div>
+   486→   486→
+   487→   487→      {/* Active setbacks + room status + notifications */}
+   488→   488→      <div className="grid gap-4 lg:grid-cols-3">
+   489→   489→        {/* Active setbacks */}
+   490→   490→        <Card className="border-border/60">
+   491→   491→          <CardHeader className="pb-2">
+   492→   492→            <CardTitle className="text-base flex items-center gap-2">
+   493→   493→              <ThermometerSun className="h-4 w-4 text-amber-500" />
+   494→   494→              Active Progressive Setbacks
+   495→   495→            </CardTitle>
+   496→   496→            <CardDescription className="text-xs">Real BMS API calls · safety-guarded</CardDescription>
+   497→   497→          </CardHeader>
+   498→   498→          <CardContent>
+   499→   499→            {activeSetbacks.length === 0 ? (
+   500→   500→              <div className="text-sm text-muted-foreground py-6 text-center">
+   501→   501→                <ThermometerSun className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+   502→   502→                No active setbacks. Approve a ghost load alert to start one.
+   503→   503→              </div>
+   504→   504→            ) : (
+   505→   505→              <div className="space-y-3">
+   506→   506→                {activeSetbacks.map(s => (
+   507→   507→                  <ActiveSetbackCard key={s.setbackId} setback={s} />
+   508→   508→                ))}
+   509→   509→              </div>
+   510→   510→            )}
+   511→   511→          </CardContent>
+   512→   512→        </Card>
+   513→   513→
+   514→   514→        {/* Room status grid */}
+   515→   515→        <Card className="lg:col-span-2 border-border/60">
+   516→   516→          <CardHeader className="pb-2">
+   517→   517→            <CardTitle className="text-base flex items-center gap-2">
+   518→   518→              <Layers className="h-4 w-4 text-primary" />
+   519→   519→              Cold Room Status Overview
+   520→   520→            </CardTitle>
+   521→   521→            <CardDescription className="text-xs">{rooms.length} rooms monitored · click for details</CardDescription>
+   522→   522→          </CardHeader>
+   523→   523→          <CardContent>
+   524→   524→            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+   525→   525→              {rooms.map(r => {
+   526→   526→                const c = roomStatusColor(r.status)
+   527→   527→                const tempOk = r.bms && r.bms.currentTemp >= r.minSafeTemp && r.bms.currentTemp <= r.maxSafeTemp
+   528→   528→                return (
+   529→   529→                  <div key={r.id} className={`rounded-lg border ${c.border} ${c.bg} p-2.5`}>
+   530→   530→                    <div className="flex items-center justify-between mb-1">
+   531→   531→                      <span className="font-semibold text-xs">{r.code}</span>
+   532→   532→                      <span className={`h-1.5 w-1.5 rounded-full ${c.bg.includes('emerald') ? 'bg-emerald-500' : c.bg.includes('red') ? 'bg-red-500' : c.bg.includes('amber') ? 'bg-amber-500' : 'bg-zinc-400'} animate-pulse`} />
+   533→   533→                    </div>
+   534→   534→                    <div className="text-[10px] text-muted-foreground truncate mb-1.5">{r.name}</div>
+   535→   535→                    <div className="flex items-center justify-between text-[10px]">
+   536→   536→                      <span className="font-mono">{r.bms ? formatTemp(r.bms.currentTemp) : '—'}</span>
+   537→   537→                      <span className="text-muted-foreground">{r.utilizationPct}%</span>
+   538→   538→                    </div>
+   539→   539→                    <Progress value={r.utilizationPct} className="h-1 mt-1" />
+   540→   540→                  </div>
+   541→   541→                )
+   542→   542→              })}
+   543→   543→            </div>
+   544→   544→          </CardContent>
+   545→   545→        </Card>
+   546→   546→      </div>
+   547→   547→
+   548→   548→      {/* Top notifications */}
+   549→   549→      <Card className="border-border/60">
+   550→   550→        <CardHeader className="pb-2">
+   551→   551→          <CardTitle className="text-base flex items-center gap-2">
+   552→   552→            <Bell className="h-4 w-4 text-primary" />
+   553→   553→            Priority Alerts
+   554→   554→          </CardTitle>
+   555→   555→          <CardDescription className="text-xs">Severity-sorted · top 5 open</CardDescription>
+   556→   556→        </CardHeader>
+   557→   557→        <CardContent>
+   558→   558→          <div className="space-y-2">
+   559→   559→            {topNotifications.length === 0 ? (
+   560→   560→              <div className="text-sm text-muted-foreground py-6 text-center">No open alerts.</div>
+   561→   561→            ) : (
+   562→   562→              topNotifications.map(n => {
+   563→   563→                const c = severityColor(n.severity)
+   564→   564→                return (
+   565→   565→                  <div key={n.id} className={`flex items-start gap-3 rounded-lg border ${c.border} ${c.bg} p-3`}>
+   566→   566→                    <span className={`mt-1 h-2 w-2 rounded-full ${c.dot}`} />
+   567→   567→                    <div className="flex-1 min-w-0">
+   568→   568→                      <div className="flex items-center gap-2 flex-wrap">
+   569→   569→                        <span className="font-medium text-sm">{n.title}</span>
+   570→   570→                        <Badge variant="outline" className={`text-[10px] ${c.text} border-current`}>{n.severity}</Badge>
+   571→   571→                        <Badge variant="outline" className="text-[10px]">{n.type.replace(/_/g, ' ')}</Badge>
+   572→   572→                      </div>
+   573→   573→                      <div className="text-xs text-muted-foreground mt-1">{n.message}</div>
+   574→   574→                    </div>
+   575→   575→                    {n.rmImpact > 0 && (
+   576→   576→                      <div className="text-right">
+   577→   577→                        <div className={`text-sm font-bold ${c.text}`}>{formatRM(n.rmImpact)}</div>
+   578→   578→                        <div className="text-[10px] text-muted-foreground">{timeAgo(n.createdAt)}</div>
+   579→   579→                      </div>
+   580→   580→                    )}
+   581→   581→                  </div>
+   582→   582→                )
+   583→   583→              })
+   584→   584→            )}
+   585→   585→          </div>
+   586→   586→        </CardContent>
+   587→   587→      </Card>
+   588→   588→    </div>
+   589→   589→  )
+   590→   590→}
+   591→   591→
+   592→   592→function KpiCard({ icon: Icon, label, value, sub, tone }: { icon: any; label: string; value: string; sub: string; tone: 'ghost' | 'optimized' | 'active' | 'consolidation' }) {
+   593→   593→  const tones = {
+   594→   594→    ghost: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', icon: 'text-red-500' },
+   595→   595→    optimized: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: 'text-emerald-500' },
+   596→   596→    active: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', icon: 'text-sky-500' },
+   597→   597→    consolidation: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: 'text-amber-500' },
+   598→   598→  }
+   599→   599→  const t = tones[tone]
+   600→   600→  return (
+   601→   601→    <Card className={`${t.bg} ${t.border} border`}>
+   602→   602→      <CardContent className="p-4">
+   603→   603→        <div className="flex items-start justify-between mb-2">
+   604→   604→          <div className={`grid place-items-center h-8 w-8 rounded-lg bg-card/80 ${t.icon}`}>
+   605→   605→            <Icon className="h-4 w-4" />
+   606→   606→          </div>
+   607→   607→        </div>
+   608→   608→        <div className={`text-2xl font-bold tracking-tight ${t.text}`}>{value}</div>
+   609→   609→        <div className="text-[11px] text-muted-foreground mt-0.5">{label}</div>
+   610→   610→        <Separator className="my-2" />
+   611→   611→        <div className="text-[11px] text-muted-foreground">{sub}</div>
+   612→   612→      </CardContent>
+   613→   613→    </Card>
+   614→   614→  )
+   615→   615→}
+   616→   616→
+   617→   617→function GhostLoadChart({ meterData }: { meterData: MeterData | null }) {
+   618→   618→  if (!meterData || meterData.timeline.length === 0) {
+   619→   619→    return (
+   620→   620→      <div className="h-[260px] grid place-items-center">
+   621→   621→        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+   622→   622→        <span className="text-xs text-muted-foreground mt-2">Loading meter data…</span>
+   623→   623→      </div>
+   624→   624→    )
+   625→   625→  }
+   626→   626→  const data = meterData.timeline.map(p => ({
+   627→   627→    t: p.t,
+   628→   628→    kw: p.kw,
+   629→   629→    idle: p.idle,
+   630→   630→    isGhost: p.isGhost,
+   631→   631→  }))
+   632→   632→  const maxIdle = Math.max(...data.map(d => d.idle))
+   633→   633→  return (
+   634→   634→    <ResponsiveContainer width="100%" height={260}>
+   635→   635→      <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+   636→   636→        <defs>
+   637→   637→          <linearGradient id="kwGrad" x1="0" y1="0" x2="0" y2="1">
+   638→   638→            <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
+   639→   639→            <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+   640→   640→          </linearGradient>
+   641→   641→          <linearGradient id="idleGrad" x1="0" y1="0" x2="0" y2="1">
+   642→   642→            <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+   643→   643→            <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+   644→   644→          </linearGradient>
+   645→   645→        </defs>
+   646→   646→        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+   647→   647→        <XAxis dataKey="t" tick={{ fontSize: 10 }} stroke="#9ca3af" interval={3} />
+   648→   648→        <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" unit=" kW" />
+   649→   649→        <RTooltip
+   650→   650→          contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+   651→   651→          formatter={(v: any, name: string) => [`${v} kW`, name === 'kw' ? 'Power draw' : 'Expected idle']}
+   652→   652→        />
+   653→   653→        <ReferenceLine y={maxIdle} stroke="#10b981" strokeDasharray="4 4" label={{ value: 'Idle baseline', fontSize: 10, fill: '#10b981', position: 'insideTopRight' }} />
+   654→   654→        <Area type="monotone" dataKey="kw" name="kw" stroke="#ef4444" strokeWidth={2} fill="url(#kwGrad)" />
+   655→   655→        <Area type="monotone" dataKey="idle" name="idle" stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 4" fill="url(#idleGrad)" />
+   656→   656→      </AreaChart>
+   657→   657→    </ResponsiveContainer>
+   658→   658→  )
+   659→   659→}
+   660→   660→
+   661→   661→function ActiveSetbackCard({ setback }: { setback: ActiveSetback }) {
+   662→   662→  const pct = (setback.currentStep / setback.totalSteps) * 100
+   663→   663→  return (
+   664→   664→    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+   665→   665→      <div className="flex items-center justify-between mb-2">
+   666→   666→        <div className="flex items-center gap-2">
+   667→   667→          <ThermometerSun className="h-4 w-4 text-amber-600" />
+   668→   668→          <span className="font-semibold text-sm">{setback.roomCode}</span>
+   669→   669→          <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">Ramping</Badge>
+   670→   670→        </div>
+   671→   671→        <span className="text-[10px] text-muted-foreground font-mono">{setback.setbackId}</span>
+   672→   672→      </div>
+   673→   673→      <div className="flex items-center gap-2 text-xs mb-2">
+   674→   674→        <span className="font-mono">{setback.startSetpoint.toFixed(1)}°C</span>
+   675→   675→        <ArrowRight className="h-3 w-3 text-amber-600" />
+   676→   676→        <span className="font-mono font-semibold">{setback.endSetpoint.toFixed(1)}°C</span>
+   677→   677→        {setback.bms && (
+   678→   678→          <span className="ml-auto text-muted-foreground">Now: <b className="text-foreground">{setback.bms.currentTemp.toFixed(1)}°C</b></span>
+   679→   679→        )}
+   680→   680→      </div>
+   681→   681→      <Progress value={pct} className="h-1.5 mb-2" />
+   682→   682→      <div className="flex justify-between text-[10px] text-muted-foreground">
+   683→   683→        <span>Step {setback.currentStep}/{setback.totalSteps}</span>
+   684→   684→        <span>{setback.bms ? formatKW(setback.bms.powerKW) : '—'}</span>
+   685→   685→      </div>
+   686→   686→    </div>
+   687→   687→  )
+   688→   688→}
+   689→   689→
+   690→   690→// ============================================================================
+   691→   691→// VIEW: COLD ROOM MAP
+   692→   692→// ============================================================================
+   693→   693→
+   694→   694→function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms[]; plan: ConsolidationPlan | null; onExecutePlan: () => void }) {
+   695→   695→  const [selected, setSelected] = useState<string | null>(null)
+   696→   696→  const [executing, setExecuting] = useState(false)
+   697→   697→  const selectedRoom = rooms.find(r => r.id === selected)
+   698→   698→
+   699→   699→  const executePlan = async () => {
+   700→   700→    setExecuting(true)
+   701→   701→    try {
+   702→   702→      const r = await fetch('/api/consolidation/execute', { method: 'POST' })
+   703→   703→      const d = await r.json()
+   704→   704→      if (d.ok) {
+   705→   705→        toast.success(`Work order created: ${d.plan.palletCount} pallets to move`)
+   706→   706→        onExecutePlan()
+   707→   707→      } else {
+   708→   708→        toast.error(d.error || 'Failed to create work order')
+   709→   709→      }
+   710→   710→    } catch (e: any) {
+   711→   711→      toast.error(e.message)
+   712→   712→    } finally {
+   713→   713→      setExecuting(false)
+   714→   714→    }
+   715→   715→  }
+   716→   716→
+   717→   717→  return (
+   718→   718→    <div className="space-y-4">
+   719→   719→      <div className="flex items-center justify-between flex-wrap gap-2">
+   720→   720→        <div>
+   721→   721→          <h2 className="text-xl font-semibold flex items-center gap-2">
+   722→   722→            <MapIcon className="h-5 w-5 text-primary" />
+   723→   723→            Factory Floor — Cold Room Map
+   724→   724→          </h2>
+   725→   725→          <p className="text-sm text-muted-foreground">Marigold PJ · 8 rooms · real-time BMS telemetry</p>
+   726→   726→        </div>
+   727→   727→        <Legend />
+   728→   728→      </div>
+   729→   729→
+   730→   730→      <div className="grid gap-4 lg:grid-cols-3">
+   731→   731→        {/* Floor plan */}
+   732→   732→        <Card className="lg:col-span-2 border-border/60">
+   733→   733→          <CardHeader className="pb-2">
+   734→   734→            <CardTitle className="text-base">Live Floor Plan</CardTitle>
+   735→   735→            <CardDescription className="text-xs">Click a room to inspect. Colors update from BMS + WMS data.</CardDescription>
+   736→   736→          </CardHeader>
+   737→   737→          <CardContent>
+   738→   738→            <FloorPlan rooms={rooms} selected={selected} onSelect={setSelected} plan={plan} />
+   739→   739→          </CardContent>
+   740→   740→        </Card>
+   741→   741→
+   742→   742→        {/* Side panel */}
+   743→   743→        <div className="space-y-4">
+   744→   744→          {selectedRoom ? (
+   745→   745→            <RoomDetailCard room={selectedRoom} />
+   746→   746→          ) : (
+   747→   747→            <Card className="border-border/60">
+   748→   748→              <CardContent className="p-6 text-center">
+   749→   749→                <MapIcon className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+   750→   750→                <div className="text-sm text-muted-foreground">Select a cold room to inspect its live status, temperature, and pallet inventory.</div>
+   751→   751→              </CardContent>
+   752→   752→            </Card>
+   753→   753→          )}
+   754→   754→
+   755→   755→          {plan && (
+   756→   756→            <Card className="border-amber-200 bg-amber-50/50">
+   757→   757→              <CardHeader className="pb-2">
+   758→   758→                <CardTitle className="text-base flex items-center gap-2">
+   759→   759→                  <ArrowLeftRight className="h-4 w-4 text-amber-600" />
+   760→   760→                  Consolidation Plan
+   761→   761→                </CardTitle>
+   762→   762→                <CardDescription className="text-xs">Greedy FEFO assignment · allergen-checked</CardDescription>
+   763→   763→              </CardHeader>
+   764→   764→              <CardContent className="space-y-3">
+   765→   765→                <div className="text-sm">
+   766→   766→                  Move <b>{plan.palletCount} pallets</b> from{' '}
+   767→   767→                  {plan.sourceRoomCodes.map((c, i) => (
+   768→   768→                    <span key={c}>
+   769→   769→                      <Badge variant="outline" className="text-[10px] mx-0.5">{c}</Badge>
+   770→   770→                      {i < plan.sourceRoomCodes.length - 1 ? '+' : ''}
+   771→   771→                    </span>
+   772→   772→                  ))}{' '}
+   773→   773→                  → <Badge variant="outline" className="text-[10px] mx-0.5">{plan.destRoomCode}</Badge>
+   774→   774→                </div>
+   775→   775→                <div className="grid grid-cols-2 gap-2 text-xs">
+   776→   776→                  <div>
+   777→   777→                    <div className="text-muted-foreground">Energy saving</div>
+   778→   778→                    <div className="font-semibold text-emerald-700">{formatRM(plan.energySavingRM)}</div>
+   779→   779→                  </div>
+   780→   780→                  <div>
+   781→   781→                    <div className="text-muted-foreground">Labor cost</div>
+   782→   782→                    <div className="font-semibold text-zinc-700">{formatRM(plan.laborCostRM)}</div>
+   783→   783→                  </div>
+   784→   784→                  <div>
+   785→   785→                    <div className="text-muted-foreground">Net benefit</div>
+   786→   786→                    <div className="font-bold text-emerald-700">{formatRM(plan.netBenefitRM)}</div>
+   787→   787→                  </div>
+   788→   788→                  <div>
+   789→   789→                    <div className="text-muted-foreground">Est. labor</div>
+   790→   790→                    <div className="font-semibold">{plan.estLaborMinutes} min</div>
+   791→   791→                  </div>
+   792→   792→                </div>
+   793→   793→                <Button className="w-full" onClick={executePlan} disabled={executing}>
+   794→   794→                  {executing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ClipboardList className="h-4 w-4 mr-2" />}
+   795→   795→                  Generate Work Order
+   796→   796→                </Button>
+   797→   797→              </CardContent>
+   798→   798→            </Card>
+   799→   799→          )}
+   800→   800→
+   801→   801→          {/* Move list */}
+   802→   802→          {plan && plan.moves.length > 0 && (
+   803→   803→            <Card className="border-border/60">
+   804→   804→              <CardHeader className="pb-2">
+   805→   805→                <CardTitle className="text-base">Move Sequence (FEFO)</CardTitle>
+   806→   806→                <CardDescription className="text-xs">{plan.moves.length} pallets · earliest expiry first</CardDescription>
+   807→   807→              </CardHeader>
+   808→   808→              <CardContent>
+   809→   809→                <ScrollArea className="h-[260px] pr-2">
+   810→   810→                  <div className="space-y-1.5">
+   811→   811→                    {plan.moves.map(m => (
+   812→   812→                      <div key={m.palletId} className="flex items-center gap-2 text-xs rounded-md border border-border/60 p-2">
+   813→   813→                        <span className="grid place-items-center h-5 w-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">{m.sequence}</span>
+   814→   814→                        <div className="flex-1 min-w-0">
+   815→   815→                          <div className="font-medium truncate">{m.productName}</div>
+   816→   816→                          <div className="text-[10px] text-muted-foreground font-mono">{m.lotNo}</div>
+   817→   817→                        </div>
+   818→   818→                        <div className="flex items-center gap-1 text-[10px] font-mono">
+   819→   819→                          <span className="px-1 rounded bg-red-50 text-red-700">{m.fromRoomCode}:{m.fromBayCode}</span>
+   820→   820→                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+   821→   821→                          <span className="px-1 rounded bg-emerald-50 text-emerald-700">{m.toRoomCode}:{m.toBayCode}</span>
+   822→   822→                        </div>
+   823→   823→                      </div>
+   824→   824→                    ))}
+   825→   825→                  </div>
+   826→   826→                </ScrollArea>
+   827→   827→              </CardContent>
+   828→   828→            </Card>
+   829→   829→          )}
+   830→   830→        </div>
+   831→   831→      </div>
+   832→   832→    </div>
+   833→   833→  )
+   834→   834→}
+   835→   835→
+   836→   836→function Legend() {
+   837→   837→  const items: { label: string; cls: string }[] = [
+   838→   838→    { label: 'Ghost Load', cls: 'bg-red-500' },
+   839→   839→    { label: 'Consolidate', cls: 'bg-amber-500' },
+   840→   840→    { label: 'Optimized', cls: 'bg-emerald-500' },
+   841→   841→    { label: 'Active', cls: 'bg-sky-500' },
+   842→   842→    { label: 'Idle', cls: 'bg-zinc-400' },
+   843→   843→  ]
+   844→   844→  return (
+   845→   845→    <div className="flex items-center gap-3 flex-wrap">
+   846→   846→      {items.map(i => (
+   847→   847→        <div key={i.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+   848→   848→          <span className={`h-2.5 w-2.5 rounded-sm ${i.cls}`} />
+   849→   849→          {i.label}
+   850→   850→        </div>
+   851→   851→      ))}
+   852→   852→    </div>
+   853→   853→  )
+   854→   854→}
+   855→   855→
+   856→   856→function FloorPlan({ rooms, selected, onSelect, plan }: { rooms: RoomWithBms[]; selected: string | null; onSelect: (id: string) => void; plan: ConsolidationPlan | null }) {
+   857→   857→  return (
+   858→   858→    <div className="relative w-full aspect-[16/8] bg-zinc-50 rounded-lg border border-border/60 overflow-hidden">
+   859→   859→      {/* Grid background */}
+   860→   860→      <svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg">
+   861→   861→        <defs>
+   862→   862→          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+   863→   863→            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#d4d4d8" strokeWidth="0.5" />
+   864→   864→          </pattern>
+   865→   865→        </defs>
+   866→   866→        <rect width="100%" height="100%" fill="url(#grid)" />
+   867→   867→      </svg>
+   868→   868→
+   869→   869→      {/* Rooms */}
+   870→   870→      {rooms.map(r => {
+   871→   871→        const c = roomStatusColor(r.status)
+   872→   872→        const isGhost = r.status === 'GHOST_LOAD'
+   873→   873→        const isConsolidation = r.status === 'CONSOLIDATION'
+   874→   874→        const isOptimized = r.status === 'OPTIMIZED'
+   875→   875→        const isDest = plan?.destRoomCode === r.code
+   876→   876→        const isSource = plan?.sourceRoomCodes.includes(r.code)
+   877→   877→        const isSel = selected === r.id
+   878→   878→        const fillColor = isGhost ? '#fee2e2' : isConsolidation ? '#fef3c7' : isOptimized ? '#d1fae5' : r.status === 'ACTIVE' ? '#e0f2fe' : '#f4f4f5'
+   879→   879→        const strokeColor = isGhost ? '#ef4444' : isConsolidation ? '#f59e0b' : isOptimized ? '#10b981' : r.status === 'ACTIVE' ? '#0ea5e9' : '#a1a1aa'
+   880→   880→        return (
+   881→   881→          <button
+   882→   882→            key={r.id}
+   883→   883→            onClick={() => onSelect(r.id)}
+   884→   884→            className={`absolute rounded-md border-2 transition-all ${isSel ? 'ring-2 ring-primary ring-offset-1 z-10' : ''} ${isSource ? 'ring-2 ring-amber-400' : ''} ${isDest ? 'ring-2 ring-emerald-500' : ''}`}
+   885→   885→            style={{
+   886→   886→              left: `${r.floorX}%`,
+   887→   887→              top: `${r.floorY}%`,
+   888→   888→              width: `${r.floorW}%`,
+   889→   889→              height: `${r.floorH}%`,
+   890→   890→              backgroundColor: fillColor,
+   891→   891→              borderColor: strokeColor,
+   892→   892→            }}
+   893→   893→          >
+   894→   894→            <div className="absolute inset-0 p-1.5 flex flex-col text-left overflow-hidden">
+   895→   895→              <div className="flex items-center justify-between">
+   896→   896→                <span className="text-[10px] font-bold text-zinc-800">{r.code}</span>
+   897→   897→                {r.bms && (
+   898→   898→                  <span className="text-[9px] font-mono text-zinc-600">{r.bms.currentTemp.toFixed(1)}°</span>
+   899→   899→                )}
+   900→   900→              </div>
+   901→   901→              <div className="text-[8px] text-zinc-600 truncate">{r.name}</div>
+   902→   902→              <div className="mt-auto flex items-end justify-between">
+   903→   903→                <div>
+   904→   904→                  <div className="text-[8px] text-zinc-500">{r.utilizationPct}%</div>
+   905→   905→                  <div className="h-1 w-12 bg-white/60 rounded-full overflow-hidden">
+   906→   906→                    <div className={`h-full ${isGhost ? 'bg-red-500' : isConsolidation ? 'bg-amber-500' : isOptimized ? 'bg-emerald-500' : 'bg-sky-500'}`} style={{ width: `${r.utilizationPct}%` }} />
+   907→   907→                  </div>
+   908→   908→                </div>
+   909→   909→                {r.bms && (
+   910→   910→                  <div className="text-[8px] font-mono text-zinc-600">{r.bms.powerKW.toFixed(1)}kW</div>
+   911→   911→                )}
+   912→   912→              </div>
+   913→   913→            </div>
+   914→   914→            {isGhost && (
+   915→   915→              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse" />
+   916→   916→            )}
+   917→   917→          </button>
+   918→   918→        )
+   919→   919→      })}
+   920→   920→
+   921→   921→      {/* Consolidation arrows overlay */}
+   922→   922→      {plan && (
+   923→   923→        <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+   924→   924→          {plan.sourceRoomCodes.map(srcCode => {
+   925→   925→            const src = rooms.find(r => r.code === srcCode)
+   926→   926→            const dst = rooms.find(r => r.code === plan.destRoomCode)
+   927→   927→            if (!src || !dst) return null
+   928→   928→            const sx = src.floorX + src.floorW / 2
+   929→   929→            const sy = src.floorY + src.floorH / 2
+   930→   930→            const dx = dst.floorX + dst.floorW / 2
+   931→   931→            const dy = dst.floorY + dst.floorH / 2
+   932→   932→            return (
+   933→   933→              <g key={srcCode}>
+   934→   934→                <defs>
+   935→   935→                  <marker id={`arrow-${srcCode}`} markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+   936→   936→                    <path d="M 0 0 L 8 4 L 0 8 z" fill="#10b981" />
+   937→   937→                  </marker>
+   938→   938→                </defs>
+   939→   939→                <path
+   940→   940→                  d={`M ${sx}% ${sy}% Q ${(sx + dx) / 2}% ${Math.min(sy, dy) - 8}% ${dx}% ${dy}%`}
+   941→   941→                  fill="none"
+   942→   942→                  stroke="#10b981"
+   943→   943→                  strokeWidth="2"
+   944→   944→                  strokeDasharray="5 3"
+   945→   945→                  markerEnd={`url(#arrow-${srcCode})`}
+   946→   946→                  opacity="0.7"
+   947→   947→                >
+   948→   948→                  <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1s" repeatCount="indefinite" />
+   949→   949→                </path>
+   950→   950→              </g>
+   951→   951→            )
+   952→   952→          })}
+   953→   953→        </svg>
+   954→   954→      )}
+   955→   955→
+   956→   956→      {/* Zone labels */}
+   957→   957→      <div className="absolute top-1 left-2 text-[10px] font-medium text-zinc-500">Production Floor — Cold Storage Zone</div>
+   958→   958→    </div>
+   959→   959→  )
+   960→   960→}
+   961→   961→
+   962→   962→function RoomDetailCard({ room }: { room: RoomWithBms }) {
+   963→   963→  const c = roomStatusColor(room.status)
+   964→   964→  const tempOk = room.bms && room.bms.currentTemp >= room.minSafeTemp && room.bms.currentTemp <= room.maxSafeTemp
+   965→   965→  return (
+   966→   966→    <Card className={`${c.bg} ${c.border} border`}>
+   967→   967→      <CardHeader className="pb-2">
+   968→   968→        <div className="flex items-start justify-between">
+   969→   969→          <div>
+   970→   970→            <CardTitle className="text-base flex items-center gap-2">
+   971→   971→              {room.code}
+   972→   972→              <Badge variant="outline" className={`text-[10px] ${c.text} border-current`}>{c.label}</Badge>
+   973→   973→            </CardTitle>
+   974→   974→            <CardDescription className="text-xs">{room.name} · {room.zone}</CardDescription>
+   975→   975→          </div>
+   976→   976→        </div>
+   977→   977→      </CardHeader>
+   978→   978→      <CardContent className="space-y-3">
+   979→   979→        {room.bms ? (
+   980→   980→          <div className="grid grid-cols-2 gap-2 text-xs">
+   981→   981→            <Metric label="Current temp" value={formatTemp(room.bms.currentTemp)} ok={tempOk} />
+   982→   982→            <Metric label="Setpoint" value={formatTemp(room.bms.setpoint)} />
+   983→   983→            <Metric label="Compressor load" value={`${Math.round(room.bms.compressorLoad * 100)}%`} />
+   984→   984→            <Metric label="Power draw" value={formatKW(room.bms.powerKW)} />
+   985→   985→            <Metric label="Utilization" value={`${room.utilizationPct}% (${room.palletCount}/${room.capacityPallets})`} />
+   986→   986→            <Metric label="Max power" value={formatKW(room.maxPowerKW)} />
+   987→   987→          </div>
+   988→   988→        ) : (
+   989→   989→          <div className="text-sm text-muted-foreground py-4 text-center">BMS offline for this room</div>
+   990→   990→        )}
+   991→   991→        <Separator />
+   992→   992→        <div className="text-[11px] text-muted-foreground">
+   993→   993→          Safe range: <span className="font-mono">{room.minSafeTemp.toFixed(1)}°C — {room.maxSafeTemp.toFixed(1)}°C</span>
+   994→   994→        </div>
+   995→   995→      </CardContent>
+   996→   996→    </Card>
+   997→   997→  )
+   998→   998→}
+   999→   999→
+  1000→  1000→function Metric({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
+  1001→  1001→  return (
+  1002→  1002→    <div className="rounded-md bg-card/60 p-2">
+  1003→  1003→      <div className="text-[10px] text-muted-foreground">{label}</div>
+  1004→  1004→      <div className={`font-mono font-semibold text-sm ${ok === false ? 'text-red-600' : ''}`}>{value}</div>
+  1005→  1005→    </div>
+  1006→  1006→  )
+  1007→  1007→}
+  1008→  1008→
+  1009→  1009→// ============================================================================
+  1010→  1010→// VIEW: WORK ORDERS
+  1011→  1011→// ============================================================================
+  1012→  1012→
+  1013→  1013→function WorkOrdersView({ workOrders, activeSetbacks, onComplete }: { workOrders: WorkOrder[]; activeSetbacks: ActiveSetback[]; onComplete: () => void }) {
+  1014→  1014→  const [completingId, setCompletingId] = useState<string | null>(null)
+  1015→  1015→  const [expanded, setExpanded] = useState<string | null>(null)
+  1016→  1016→
+  1017→  1017→  const complete = async (id: string) => {
+  1018→  1018→    setCompletingId(id)
+  1019→  1019→    try {
+  1020→  1020→      const r = await fetch(`/api/work-orders/${id}/complete`, { method: 'POST' })
+  1021→  1021→      const d = await r.json()
+  1022→  1022→      if (d.ok) {
+  1023→  1023→        toast.success(`Completed in ${d.elapsedMin} min · ${d.setbacks?.length || 0} setbacks triggered`)
+  1024→  1024→        onComplete()
+  1025→  1025→      } else {
+  1026→  1026→        toast.error(d.error || 'Failed')
+  1027→  1027→      }
+  1028→  1028→    } catch (e: any) {
+  1029→  1029→      toast.error(e.message)
+  1030→  1030→    } finally {
+  1031→  1031→      setCompletingId(null)
+  1032→  1032→    }
+  1033→  1033→  }
+  1034→  1034→
+  1035→  1035→  const pending = workOrders.filter(w => w.status !== 'COMPLETED')
+  1036→  1036→  const completed = workOrders.filter(w => w.status === 'COMPLETED')
+  1037→  1037→
+  1038→  1038→  return (
+  1039→  1039→    <div className="space-y-4">
+  1040→  1040→      <div className="flex items-center justify-between">
+  1041→  1041→        <div>
+  1042→  1042→          <h2 className="text-xl font-semibold flex items-center gap-2">
+  1043→  1043→            <ClipboardList className="h-5 w-5 text-primary" />
+  1044→  1044→            Work Orders
+  1045→  1045→          </h2>
+  1046→  1046→          <p className="text-sm text-muted-foreground">Consolidation tasks dispatched to warehouse · FEFO-sequenced · allergen-checked</p>
+  1047→  1047→        </div>
+  1048→  1048→      </div>
+  1049→  1049→
+  1050→  1050→      {/* Active setbacks strip */}
+  1051→  1051→      {activeSetbacks.length > 0 && (
+  1052→  1052→        <Card className="border-amber-200 bg-amber-50/50">
+  1053→  1053→          <CardHeader className="pb-2">
+  1054→  1054→            <CardTitle className="text-base flex items-center gap-2">
+  1055→  1055→              <ThermometerSun className="h-4 w-4 text-amber-600" />
+  1056→  1056→              {activeSetbacks.length} Active Setback{activeSetbacks.length > 1 ? 's' : ''} · BMS API Live
+  1057→  1057→            </CardTitle>
+  1058→  1058→            <CardDescription className="text-xs">Progressive ramp commands executing against the BMS simulator</CardDescription>
+  1059→  1059→          </CardHeader>
+  1060→  1060→          <CardContent>
+  1061→  1061→            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+  1062→  1062→              {activeSetbacks.map(s => <ActiveSetbackCard key={s.setbackId} setback={s} />)}
+  1063→  1063→            </div>
+  1064→  1064→          </CardContent>
+  1065→  1065→        </Card>
+  1066→  1066→      )}
+  1067→  1067→
+  1068→  1068→      {/* Pending */}
+  1069→  1069→      <div>
+  1070→  1070→        <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+  1071→  1071→          <Clock className="h-4 w-4" /> Pending & In Progress ({pending.length})
+  1072→  1072→        </h3>
+  1073→  1073→        {pending.length === 0 ? (
+  1074→  1074→          <Card className="border-dashed"><CardContent className="p-6 text-center text-sm text-muted-foreground">No pending work orders.</CardContent></Card>
+  1075→  1075→        ) : (
+  1076→  1076→          <div className="space-y-2">
+  1077→  1077→            {pending.map(wo => (
+  1078→  1078→              <WorkOrderCard
+  1079→  1079→                key={wo.id}
+  1080→  1080→                wo={wo}
+  1081→  1081→                expanded={expanded === wo.id}
+  1082→  1082→                onToggle={() => setExpanded(expanded === wo.id ? null : wo.id)}
+  1083→  1083→                onComplete={() => complete(wo.id)}
+  1084→  1084→                completing={completingId === wo.id}
+  1085→  1085→              />
+  1086→  1086→            ))}
+  1087→  1087→          </div>
+  1088→  1088→        )}
+  1089→  1089→      </div>
+  1090→  1090→
+  1091→  1091→      {/* Completed */}
+  1092→  1092→      {completed.length > 0 && (
+  1093→  1093→        <div>
+  1094→  1094→          <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+  1095→  1095→            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Recently Completed ({completed.length})
+  1096→  1096→          </h3>
+  1097→  1097→          <div className="space-y-2">
+  1098→  1098→            {completed.map(wo => (
+  1099→  1099→              <Card key={wo.id} className="border-emerald-200 bg-emerald-50/40">
+  1100→  1100→                <CardContent className="p-3">
+  1101→  1101→                  <div className="flex items-center gap-3">
+  1102→  1102→                    <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+  1103→  1103→                    <div className="flex-1 min-w-0">
+  1104→  1104→                      <div className="font-medium text-sm truncate">{wo.title}</div>
+  1105→  1105→                      <div className="text-[11px] text-muted-foreground">
+  1106→  1106→                        {wo.assignedTo} · {wo.estLaborMinutes} min est · completed {timeAgo(wo.completedAt || wo.createdAt)}
+  1107→  1107→                      </div>
+  1108→  1108→                    </div>
+  1109→  1109→                    <div className="text-right">
+  1110→  1110→                      <div className="text-sm font-bold text-emerald-700">{formatRM(wo.rmSaved || wo.rmSavedPerHour)}</div>
+  1111→  1111→                      <div className="text-[10px] text-muted-foreground">saved</div>
+  1112→  1112→                    </div>
+  1113→  1113→                  </div>
+  1114→  1114→                </CardContent>
+  1115→  1115→              </Card>
+  1116→  1116→            ))}
+  1117→  1117→          </div>
+  1118→  1118→        </div>
+  1119→  1119→      )}
+  1120→  1120→    </div>
+  1121→  1121→  )
+  1122→  1122→}
+  1123→  1123→
+  1124→  1124→function WorkOrderCard({ wo, expanded, onToggle, onComplete, completing }: {
+  1125→  1125→  wo: WorkOrder; expanded: boolean; onToggle: () => void; onComplete: () => void; completing: boolean
+  1126→  1126→}) {
+  1127→  1127→  const pct = wo.totalMoves > 0 ? (wo.completedMoves / wo.totalMoves) * 100 : 0
+  1128→  1128→  return (
+  1129→  1129→    <Card className="border-border/60">
+  1130→  1130→      <CardContent className="p-3">
+  1131→  1131→        <div className="flex items-center gap-3">
+  1132→  1132→          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onToggle}>
+  1133→  1133→            <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+  1134→  1134→          </Button>
+  1135→  1135→          <div className="flex-1 min-w-0">
+  1136→  1136→            <div className="font-medium text-sm truncate">{wo.title}</div>
+  1137→  1137→            <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+  1138→  1138→              <Badge variant="outline" className="text-[10px]">{wo.status}</Badge>
+  1139→  1139→              {wo.assignedTo && <span>· {wo.assignedTo}</span>}
+  1140→  1140→              <span>· {wo.totalMoves} moves · {wo.estLaborMinutes} min</span>
+  1141→  1141→            </div>
+  1142→  1142→          </div>
+  1143→  1143→          <div className="text-right">
+  1144→  1144→            <div className="text-sm font-bold text-emerald-700">{formatRM(wo.rmSavedPerHour)}/hr</div>
+  1145→  1145→            <div className="text-[10px] text-muted-foreground">est. saving</div>
+  1146→  1146→          </div>
+  1147→  1147→          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={onComplete} disabled={completing}>
+  1148→  1148→            {completing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+  1149→  1149→            <span className="ml-1.5">Complete</span>
+  1150→  1150→          </Button>
+  1151→  1151→        </div>
+  1152→  1152→        <Progress value={pct} className="h-1 mt-2" />
+  1153→  1153→        {expanded && wo.moves && wo.moves.length > 0 && (
+  1154→  1154→          <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5 max-h-72 overflow-y-auto">
+  1155→  1155→            {wo.moves.map(m => (
+  1156→  1156→              <div key={m.id} className={`flex items-center gap-2 text-xs rounded-md p-2 ${m.confirmedAt ? 'bg-emerald-50 border border-emerald-200' : 'bg-zinc-50 border border-border/60'}`}>
+  1157→  1157→                <span className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold ${m.confirmedAt ? 'bg-emerald-500 text-white' : 'bg-primary/10 text-primary'}`}>{m.sequence}</span>
+  1158→  1158→                <div className="flex-1 min-w-0">
+  1159→  1159→                  <div className="font-medium truncate">{m.productName}</div>
+  1160→  1160→                  <div className="text-[10px] text-muted-foreground font-mono">{m.lotNo}</div>
+  1161→  1161→                </div>
+  1162→  1162→                {!m.allergenOk && <Badge variant="outline" className="text-[10px] text-red-700 border-red-300">allergen</Badge>}
+  1163→  1163→                <div className="flex items-center gap-1 text-[10px] font-mono">
+  1164→  1164→                  <span className="px-1 rounded bg-red-50 text-red-700">{m.fromRoomCode}:{m.fromBayCode}</span>
+  1165→  1165→                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+  1166→  1166→                  <span className="px-1 rounded bg-emerald-50 text-emerald-700">{m.toRoomCode}:{m.toBayCode}</span>
+  1167→  1167→                </div>
+  1168→  1168→                {m.confirmedAt ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <CircleDot className="h-3.5 w-3.5 text-muted-foreground/50" />}
+  1169→  1169→              </div>
+  1170→  1170→            ))}
+  1171→  1171→          </div>
+  1172→  1172→        )}
+  1173→  1173→      </CardContent>
+  1174→  1174→    </Card>
+  1175→  1175→  )
+  1176→  1176→}
+  1177→  1177→
+  1178→  1178→// ============================================================================
+  1179→  1179→// VIEW: NOTIFICATIONS
+  1180→  1180→// ============================================================================
+  1181→  1181→
+  1182→  1182→function NotificationsView({ notifs, counts, onAction }: { notifs: Notification[]; counts: Record<string, number>; onAction: () => void }) {
+  1183→  1183→  const [filter, setFilter] = useState<Severity | 'ALL'>('ALL')
+  1184→  1184→  const [typeFilter, setTypeFilter] = useState<string>('ALL')
+  1185→  1185→  const [acting, setActing] = useState<string | null>(null)
+  1186→  1186→
+  1187→  1187→  const filtered = notifs.filter(n => {
+  1188→  1188→    if (filter !== 'ALL' && n.severity !== filter) return false
+  1189→  1189→    if (typeFilter !== 'ALL' && n.type !== typeFilter) return false
+  1190→  1190→    return true
+  1191→  1191→  })
+  1192→  1192→
+  1193→  1193→  const types = Array.from(new Set(notifs.map(n => n.type)))
+  1194→  1194→
+  1195→  1195→  const act = async (id: string, action: 'approve' | 'defer' | 'dismiss') => {
+  1196→  1196→    setActing(id)
+  1197→  1197→    try {
+  1198→  1198→      const r = await fetch(`/api/notifications/${id}/${action}`, { method: 'POST' })
+  1199→  1199→      const d = await r.json()
+  1200→  1200→      if (d.ok) {
+  1201→  1201→        toast.success(`Notification ${action}d`)
+  1202→  1202→        if (d.sideEffect?.type === 'SETBACK_STARTED') {
+  1203→  1203→          toast.info(`Progressive setback started: ${d.sideEffect.setbackId}`)
+  1204→  1204→        }
+  1205→  1205→        onAction()
+  1206→  1206→      } else {
+  1207→  1207→        toast.error(d.error || 'Failed')
+  1208→  1208→      }
+  1209→  1209→    } catch (e: any) {
+  1210→  1210→      toast.error(e.message)
+  1211→  1211→    } finally {
+  1212→  1212→      setActing(null)
+  1213→  1213→    }
+  1214→  1214→  }
+  1215→  1215→
+  1216→  1216→  return (
+  1217→  1217→    <div className="space-y-4">
+  1218→  1218→      <div className="flex items-center justify-between flex-wrap gap-2">
+  1219→  1219→        <div>
+  1220→  1220→          <h2 className="text-xl font-semibold flex items-center gap-2">
+  1221→  1221→            <Bell className="h-5 w-5 text-primary" />
+  1222→  1222→            Alerts & Notifications
+  1223→  1223→          </h2>
+  1224→  1224→          <p className="text-sm text-muted-foreground">Severity-sorted · approve to trigger automated response</p>
+  1225→  1225→        </div>
+  1226→  1226→        <SeverityTabs counts={counts} active={filter} onChange={setFilter} />
+  1227→  1227→      </div>
+  1228→  1228→
+  1229→  1229→      {/* Type filter chips */}
+  1230→  1230→      <div className="flex items-center gap-2 flex-wrap">
+  1231→  1231→        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+  1232→  1232→        <Button variant={typeFilter === 'ALL' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setTypeFilter('ALL')}>All types</Button>
+  1233→  1233→        {types.map(t => (
+  1234→  1234→          <Button key={t} variant={typeFilter === t ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setTypeFilter(t)}>
+  1235→  1235→            {t.replace(/_/g, ' ')}
+  1236→  1236→          </Button>
+  1237→  1237→        ))}
+  1238→  1238→      </div>
+  1239→  1239→
+  1240→  1240→      {/* List */}
+  1241→  1241→      <div className="space-y-2">
+  1242→  1242→        {filtered.length === 0 ? (
+  1243→  1243→          <Card className="border-dashed">
+  1244→  1244→            <CardContent className="p-12 text-center">
+  1245→  1245→              <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-3" />
+  1246→  1246→              <div className="text-lg font-medium">All clear</div>
+  1247→  1247→              <div className="text-sm text-muted-foreground">No notifications match this filter.</div>
+  1248→  1248→            </CardContent>
+  1249→  1249→          </Card>
+  1250→  1250→        ) : (
+  1251→  1251→          filtered.map(n => {
+  1252→  1252→            const c = severityColor(n.severity)
+  1253→  1253→            const isOpen = n.status === 'OPEN'
+  1254→  1254→            return (
+  1255→  1255→              <Card key={n.id} className={`${c.border} ${isOpen ? c.bg : 'opacity-60'} border`}>
+  1256→  1256→                <CardContent className="p-3">
+  1257→  1257→                  <div className="flex items-start gap-3">
+  1258→  1258→                    <div className={`mt-1 h-2.5 w-2.5 rounded-full ${c.dot} flex-shrink-0 ${isOpen ? 'animate-pulse' : ''}`} />
+  1259→  1259→                    <div className="flex-1 min-w-0">
+  1260→  1260→                      <div className="flex items-center gap-2 flex-wrap mb-1">
+  1261→  1261→                        <span className="font-semibold text-sm">{n.title}</span>
+  1262→  1262→                        <Badge variant="outline" className={`text-[10px] ${c.text} border-current`}>{n.severity}</Badge>
+  1263→  1263→                        <Badge variant="outline" className="text-[10px]">{n.type.replace(/_/g, ' ')}</Badge>
+  1264→  1264→                        {!isOpen && <Badge variant="outline" className="text-[10px]">{n.status}</Badge>}
+  1265→  1265→                      </div>
+  1266→  1266→                      <div className="text-xs text-muted-foreground mb-2">{n.message}</div>
+  1267→  1267→                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+  1268→  1268→                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeAgo(n.createdAt)}</span>
+  1269→  1269→                        {n.durationHours > 0 && <span>· {formatDuration(n.durationHours)}</span>}
+  1270→  1270→                        {n.rmImpact > 0 && <span>· {formatRM(n.rmImpact)} impact</span>}
+  1271→  1271→                        {n.rmPerHour > 0 && <span>· {formatRM(n.rmPerHour)}/hr</span>}
+  1272→  1272→                        <span className="flex items-center gap-1">
+  1273→  1273→                          {channelIcon(n.channels).map(ch => <ChannelIcon key={ch} ch={ch} />)}
+  1274→  1274→                        </span>
+  1275→  1275→                      </div>
+  1276→  1276→                    </div>
+  1277→  1277→                    {isOpen && n.actionType && n.actionType !== 'NONE' && (
+  1278→  1278→                      <div className="flex items-center gap-1 flex-shrink-0">
+  1279→  1279→                        <Button size="sm" className="h-7 bg-emerald-600 hover:bg-emerald-700 text-xs" onClick={() => act(n.id, 'approve')} disabled={acting === n.id}>
+  1280→  1280→                          {acting === n.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+  1281→  1281→                          <span className="ml-1">Approve</span>
+  1282→  1282→                        </Button>
+  1283→  1283→                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => act(n.id, 'defer')} disabled={acting === n.id}>
+  1284→  1284→                          Defer
+  1285→  1285→                        </Button>
+  1286→  1286→                        <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => act(n.id, 'dismiss')} disabled={acting === n.id}>
+  1287→  1287→                          <X className="h-3 w-3" />
+  1288→  1288→                        </Button>
+  1289→  1289→                      </div>
+  1290→  1290→                    )}
+  1291→  1291→                  </div>
+  1292→  1292→                </CardContent>
+  1293→  1293→              </Card>
+  1294→  1294→            )
+  1295→  1295→          })
+  1296→  1296→        )}
+  1297→  1297→      </div>
+  1298→  1298→    </div>
+  1299→  1299→  )
+  1300→  1300→}
+  1301→  1301→
+  1302→  1302→function SeverityTabs({ counts, active, onChange }: { counts: Record<string, number>; active: Severity | 'ALL'; onChange: (s: Severity | 'ALL') => void }) {
+  1303→  1303→  const tabs: { key: Severity | 'ALL'; label: string; color: string }[] = [
+  1304→  1304→    { key: 'ALL', label: 'All', color: 'bg-zinc-500' },
+  1305→  1305→    { key: 'CRITICAL', label: 'Critical', color: 'bg-red-500' },
+  1306→  1306→    { key: 'HIGH', label: 'High', color: 'bg-orange-500' },
+  1307→  1307→    { key: 'MEDIUM', label: 'Medium', color: 'bg-amber-400' },
+  1308→  1308→    { key: 'LOW', label: 'Low', color: 'bg-sky-400' },
+  1309→  1309→  ]
+  1310→  1310→  return (
+  1311→  1311→    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
+  1312→  1312→      {tabs.map(t => {
+  1313→  1313→        const count = t.key === 'ALL' ? Object.values(counts).reduce((a, b) => a + b, 0) : counts[t.key] || 0
+  1314→  1314→        return (
+  1315→  1315→          <button
+  1316→  1316→            key={t.key}
+  1317→  1317→            onClick={() => onChange(t.key)}
+  1318→  1318→            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${active === t.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+  1319→  1319→          >
+  1320→  1320→            <span className={`h-1.5 w-1.5 rounded-full ${t.color}`} />
+  1321→  1321→            {t.label}
+  1322→  1322→            <span className="text-[10px] text-muted-foreground">({count})</span>
+  1323→  1323→          </button>
+  1324→  1324→        )
+  1325→  1325→      })}
+  1326→  1326→    </div>
+  1327→  1327→  )
+  1328→  1328→}
+  1329→  1329→
+  1330→  1330→function ChannelIcon({ ch }: { ch: string }) {
+  1331→  1331→  const map: Record<string, { icon: any; label: string }> = {
+  1332→  1332→    DASHBOARD: { icon: Activity, label: 'Dashboard' },
+  1333→  1333→    SMS: { icon: Smartphone, label: 'SMS' },
+  1334→  1334→    WHATSAPP: { icon: MessageSquare, label: 'WhatsApp' },
+  1335→  1335→    EMAIL: { icon: Mail, label: 'Email' },
+  1336→  1336→  }
+  1337→  1337→  const m = map[ch]
+  1338→  1338→  if (!m) return null
+  1339→  1339→  const Icon = m.icon
+  1340→  1340→  return (
+  1341→  1341→    <TooltipProvider>
+  1342→  1342→      <Tooltip>
+  1343→  1343→        <TooltipTrigger asChild>
+  1344→  1344→          <span className="inline-flex"><Icon className="h-3 w-3" /></span>
+  1345→  1345→        </TooltipTrigger>
+  1346→  1346→        <TooltipContent side="top">{m.label}</TooltipContent>
+  1347→  1347→      </Tooltip>
+  1348→  1348→    </TooltipProvider>
+  1349→  1349→  )
+  1350→  1350→}
+  1351→  1351→
+  1352→  1352→// ============================================================================
+  1353→  1353→// VIEW: ANALYTICS
+  1354→  1354→// ============================================================================
+  1355→  1355→
+  1356→  1356→function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh }: {
+  1357→  1357→  analytics: AnalyticsData | null
+  1358→  1358→  meterData: MeterData | null
+  1359→  1359→  setbackHistory: SetbackHistoryItem[]
+  1360→  1360→  onRefresh: () => void
+  1361→  1361→}) {
+  1362→  1362→  if (!analytics) {
+  1363→  1363→    return (
+  1364→  1364→      <div className="grid place-items-center h-[40vh]">
+  1365→  1365→        <div className="flex flex-col items-center gap-3">
+  1366→  1366→          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  1367→  1367→          <div className="text-sm text-muted-foreground">Loading analytics…</div>
+  1368→  1368→        </div>
+  1369→  1369→      </div>
+  1370→  1370→    )
+  1371→  1371→  }
+  1372→  1372→
+  1373→  1373→  const { heatmap, trend, roi, topRooms, energyMix, tariff } = analytics
+  1374→  1374→
+  1375→  1375→  return (
+  1376→  1376→    <div className="space-y-6">
+  1377→  1377→      <div className="flex items-center justify-between flex-wrap gap-2">
+  1378→  1378→        <div>
+  1379→  1379→          <h2 className="text-xl font-semibold flex items-center gap-2">
+  1380→  1380→            <BarChart3 className="h-5 w-5 text-primary" />
+  1381→  1381→            Energy Analytics & ROI
+  1382→  1382→          </h2>
+  1383→  1383→          <p className="text-sm text-muted-foreground">30-day trends · ghost load heatmap · payback analysis</p>
+  1384→  1384→        </div>
+  1385→  1385→        <Button variant="outline" size="sm" onClick={onRefresh}>
+  1386→  1386→          <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+  1387→  1387→        </Button>
+  1388→  1388→      </div>
+  1389→  1389→
+  1390→  1390→      {/* ROI hero cards */}
+  1391→  1391→      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+  1392→  1392→        <RoiCard icon={DollarSign} label="Monthly Savings" value={formatRM(roi.monthlySavings)} sub="Current period" tone="optimized" />
+  1393→  1393→        <RoiCard icon={Target} label="Payback Period" value={roi.roiMonths < 1 ? '< 1 month' : `${roi.roiMonths} months`} sub={`SaaS cost: ${formatRM(roi.saasMonthlyCost)}/mo`} tone="active" />
+  1394→  1394→        <RoiCard icon={TrendingUp} label="Annual Net Benefit" value={formatRM(roi.netAnnualBenefit)} sub={`ROI: ${roi.roiPercent}%`} tone={roi.netAnnualBenefit > 0 ? 'optimized' : 'ghost'} />
+  1395→  1395→        <RoiCard icon={Leaf} label="Annual CO₂ Avoided" value={`${(analytics.trend.reduce((s, d) => s + d.co2, 0) * 12 / 30).toFixed(1)} t`} sub="vs TNB grid factor" tone="active" />
+  1396→  1396→      </div>
+  1397→  1397→
+  1398→  1398→      {/* Ghost load heatmap */}
+  1399→  1399→      <Card className="border-border/60">
+  1400→  1400→        <CardHeader className="pb-2">
+  1401→  1401→          <CardTitle className="text-base flex items-center gap-2">
+  1402→  1402→            <Flame className="h-4 w-4 text-red-500" />
+  1403→  1403→            24-Hour Ghost Load Heatmap
+  1404→  1404→          </CardTitle>
+  1405→  1405→          <CardDescription className="text-xs">Power draw (kW) by room × hour · red = ghost load active · blue = production active</CardDescription>
+  1406→  1406→        </CardHeader>
+  1407→  1407→        <CardContent>
+  1408→  1408→          <GhostLoadHeatmap data={heatmap} />
+  1409→  1409→        </CardContent>
+  1410→  1410→      </Card>
+  1411→  1411→
+  1412→  1412→      <div className="grid gap-4 lg:grid-cols-2">
+  1413→  1413→        {/* 30-day savings trend */}
+  1414→  1414→        <Card className="border-border/60">
+  1415→  1415→          <CardHeader className="pb-2">
+  1416→  1416→            <CardTitle className="text-base flex items-center gap-2">
+  1417→  1417→              <TrendingDown className="h-4 w-4 text-emerald-500" />
+  1418→  1418→              30-Day Savings Trend
+  1419→  1419→            </CardTitle>
+  1420→  1420→            <CardDescription className="text-xs">Daily RM savings · weekends shaded</CardDescription>
+  1421→  1421→          </CardHeader>
+  1422→  1422→          <CardContent>
+  1423→  1423→            <SavingsTrendChart data={trend} />
+  1424→  1424→          </CardContent>
+  1425→  1425→        </Card>
+  1426→  1426→
+  1427→  1427→        {/* Energy mix by zone */}
+  1428→  1428→        <Card className="border-border/60">
+  1429→  1429→          <CardHeader className="pb-2">
+  1430→  1430→            <CardTitle className="text-base flex items-center gap-2">
+  1431→  1431→              <Factory className="h-4 w-4 text-primary" />
+  1432→  1432→              Current Energy Mix by Zone
+  1433→  1433→            </CardTitle>
+  1434→  1434→            <CardDescription className="text-xs">Live power draw · ghost rooms highlighted</CardDescription>
+  1435→  1435→          </CardHeader>
+  1436→  1436→          <CardContent>
+  1437→  1437→            <EnergyMixChart data={energyMix} />
+  1438→  1438→          </CardContent>
+  1439→  1439→        </Card>
+  1440→  1440→      </div>
+  1441→  1441→
+  1442→  1442→      {/* Top ghost load rooms + Setback history */}
+  1443→  1443→      <div className="grid gap-4 lg:grid-cols-2">
+  1444→  1444→        <Card className="border-border/60">
+  1445→  1445→          <CardHeader className="pb-2">
+  1446→  1446→            <CardTitle className="text-base flex items-center gap-2">
+  1447→  1447→              <Zap className="h-4 w-4 text-red-500" />
+  1448→  1448→              Top Ghost Load Rooms
+  1449→  1449→            </CardTitle>
+  1450→  1450→            <CardDescription className="text-xs">Ranked by total RM waste this period</CardDescription>
+  1451→  1451→          </CardHeader>
+  1452→  1452→          <CardContent>
+  1453→  1453→            {topRooms.length === 0 ? (
+  1454→  1454→              <div className="text-sm text-muted-foreground py-6 text-center">No ghost load events recorded.</div>
+  1455→  1455→            ) : (
+  1456→  1456→              <div className="space-y-2">
+  1457→  1457→                {topRooms.map((r, i) => (
+  1458→  1458→                  <div key={r.roomCode} className="flex items-center gap-3 p-2 rounded-lg border border-border/60">
+  1459→  1459→                    <span className={`grid place-items-center h-7 w-7 rounded-full text-xs font-bold ${i === 0 ? 'bg-red-100 text-red-700' : i === 1 ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'}`}>{i + 1}</span>
+  1460→  1460→                    <div className="flex-1 min-w-0">
+  1461→  1461→                      <div className="font-medium text-sm">{r.roomCode} · {r.roomName}</div>
+  1462→  1462→                      <div className="text-[11px] text-muted-foreground">{r.zone} · {r.eventCount} events · {r.totalHours}h total</div>
+  1463→  1463→                    </div>
+  1464→  1464→                    <div className="text-right">
+  1465→  1465→                      <div className="text-sm font-bold text-red-600">{formatRM(r.totalRM)}</div>
+  1466→  1466→                      <div className="text-[10px] text-muted-foreground">waste</div>
+  1467→  1467→                    </div>
+  1468→  1468→                  </div>
+  1469→  1469→                ))}
+  1470→  1470→              </div>
+  1471→  1471→            )}
+  1472→  1472→          </CardContent>
+  1473→  1473→        </Card>
+  1474→  1474→
+  1475→  1475→        {/* Setback history */}
+  1476→  1476→        <Card className="border-border/60">
+  1477→  1477→          <CardHeader className="pb-2">
+  1478→  1478→            <CardTitle className="text-base flex items-center gap-2">
+  1479→  1479→              <ThermometerSun className="h-4 w-4 text-amber-500" />
+  1480→  1480→              Setback History
+  1481→  1481→            </CardTitle>
+  1482→  1482→            <CardDescription className="text-xs">{setbackHistory.length} events · real BMS API executions</CardDescription>
+  1483→  1483→          </CardHeader>
+  1484→  1484→          <CardContent>
+  1485→  1485→            {setbackHistory.length === 0 ? (
+  1486→  1486→              <div className="text-sm text-muted-foreground py-6 text-center">No setback events yet.</div>
+  1487→  1487→            ) : (
+  1488→  1488→              <ScrollArea className="h-[280px] pr-2">
+  1489→  1489→                <div className="space-y-2">
+  1490→  1490→                  {setbackHistory.slice(0, 15).map(s => (
+  1491→  1491→                    <div key={s.id} className={`rounded-lg border p-2.5 text-xs ${s.status === 'COMPLETED' ? 'border-emerald-200 bg-emerald-50/50' : s.status === 'ABORTED' ? 'border-red-200 bg-red-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
+  1492→  1492→                      <div className="flex items-center justify-between mb-1">
+  1493→  1493→                        <div className="flex items-center gap-2">
+  1494→  1494→                          <span className="font-mono font-semibold">{s.id}</span>
+  1495→  1495→                          <Badge variant="outline" className="text-[9px]">{s.roomCode}</Badge>
+  1496→  1496→                          <Badge variant="outline" className={`text-[9px] ${s.status === 'COMPLETED' ? 'text-emerald-700' : s.status === 'ABORTED' ? 'text-red-700' : 'text-amber-700'}`}>{s.status}</Badge>
+  1497→  1497→                        </div>
+  1498→  1498→                        {s.estRmSaved > 0 && <span className="font-bold text-emerald-700">{formatRM(s.estRmSaved)}</span>}
+  1499→  1499→                      </div>
+  1500→  1500→                      <div className="text-[10px] text-muted-foreground flex items-center gap-2">
+  1501→  1501→                        <span>{s.startSetpoint}°C → {s.endSetpoint}°C</span>
+  1502→  1502→                        <span>·</span>
+  1503→  1503→                        <span>{s.reason.replace(/_/g, ' ')}</span>
+  1504→  1504→                        {s.completedAt && <span>· {timeAgo(s.completedAt)}</span>}
+  1505→  1505→                        {s.abortedAt && s.abortReason && <span className="text-red-600">· {s.abortReason}</span>}
+  1506→  1506→                      </div>
+  1507→  1507→                    </div>
+  1508→  1508→                  ))}
+  1509→  1509→                </div>
+  1510→  1510→              </ScrollArea>
+  1511→  1511→            )}
+  1512→  1512→          </CardContent>
+  1513→  1513→        </Card>
+  1514→  1514→      </div>
+  1515→  1515→    </div>
+  1516→  1516→  )
+  1517→  1517→}
+  1518→  1518→
+  1519→  1519→function RoiCard({ icon: Icon, label, value, sub, tone }: { icon: any; label: string; value: string; sub: string; tone: 'ghost' | 'optimized' | 'active' | 'consolidation' }) {
+  1520→  1520→  const tones = {
+  1521→  1521→    ghost: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', icon: 'text-red-500' },
+  1522→  1522→    optimized: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: 'text-emerald-500' },
+  1523→  1523→    active: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', icon: 'text-sky-500' },
+  1524→  1524→    consolidation: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: 'text-amber-500' },
+  1525→  1525→  }
+  1526→  1526→  const t = tones[tone]
+  1527→  1527→  return (
+  1528→  1528→    <Card className={`${t.bg} ${t.border} border`}>
+  1529→  1529→      <CardContent className="p-4">
+  1530→  1530→        <div className={`grid place-items-center h-8 w-8 rounded-lg bg-card/80 ${t.icon} mb-2`}>
+  1531→  1531→          <Icon className="h-4 w-4" />
+  1532→  1532→        </div>
+  1533→  1533→        <div className={`text-2xl font-bold tracking-tight ${t.text}`}>{value}</div>
+  1534→  1534→        <div className="text-[11px] text-muted-foreground mt-0.5">{label}</div>
+  1535→  1535→        <Separator className="my-2" />
+  1536→  1536→        <div className="text-[11px] text-muted-foreground">{sub}</div>
+  1537→  1537→      </CardContent>
+  1538→  1538→    </Card>
+  1539→  1539→  )
+  1540→  1540→}
+  1541→  1541→
+  1542→  1542→function GhostLoadHeatmap({ data }: { data: AnalyticsData['heatmap'] }) {
+  1543→  1543→  const maxKW = Math.max(...data.flatMap(r => r.hours.map(h => h.kw)))
+  1544→  1544→  return (
+  1545→  1545→    <div className="overflow-x-auto">
+  1546→  1546→      <div className="min-w-[700px]">
+  1547→  1547→        {/* Hour labels */}
+  1548→  1548→        <div className="flex gap-0.5 mb-1 ml-[120px]">
+  1549→  1549→          {Array.from({ length: 24 }, (_, h) => (
+  1550→  1550→            <div key={h} className="flex-1 text-center text-[8px] text-muted-foreground font-mono">
+  1551→  1551→              {h % 3 === 0 ? `${h}h` : ''}
+  1552→  1552→            </div>
+  1553→  1553→          ))}
+  1554→  1554→        </div>
+  1555→  1555→        {/* Room rows */}
+  1556→  1556→        <div className="space-y-0.5">
+  1557→  1557→          {data.map(room => (
+  1558→  1558→            <div key={room.roomCode} className="flex items-center gap-1">
+  1559→  1559→              <div className="w-[115px] flex-shrink-0 text-[10px] font-medium text-right pr-2 truncate">
+  1560→  1560→                <span className="font-mono">{room.roomCode}</span>
+  1561→  1561→                <span className="text-muted-foreground ml-1">{room.zone}</span>
+  1562→  1562→              </div>
+  1563→  1563→              <div className="flex gap-0.5 flex-1">
+  1564→  1564→                {room.hours.map(h => {
+  1565→  1565→                  const intensity = h.kw / maxKW
+  1566→  1566→                  let bg: string
+  1567→  1567→                  if (h.isGhost) {
+  1568→  1568→                    bg = `rgba(239, 68, 68, ${0.3 + intensity * 0.6})`
+  1569→  1569→                  } else if (h.isProd) {
+  1570→  1570→                    bg = `rgba(14, 165, 233, ${0.15 + intensity * 0.3})`
+  1571→  1571→                  } else {
+  1572→  1572→                    bg = `rgba(16, 185, 129, ${0.1 + intensity * 0.2})`
+  1573→  1573→                  }
+  1574→  1574→                  return (
+  1575→  1575→                    <TooltipProvider key={h.hour}>
+  1576→  1576→                      <Tooltip>
+  1577→  1577→                        <TooltipTrigger asChild>
+  1578→  1578→                          <div
+  1579→  1579→                            className="flex-1 h-6 rounded-sm border border-white/40 cursor-pointer hover:ring-1 hover:ring-primary"
+  1580→  1580→                            style={{ backgroundColor: bg }}
+  1581→  1581→                          />
+  1582→  1582→                        </TooltipTrigger>
+  1583→  1583→                        <TooltipContent side="top" className="text-xs">
+  1584→  1584→                          <div className="font-mono">{room.roomCode} · {h.hour}:00</div>
+  1585→  1585→                          <div>Power: <b>{h.kW ?? h.kw} kW</b></div>
+  1586→  1586→                          <div>Status: {h.isGhost ? '🔴 Ghost Load' : h.isProd ? '🔵 Production' : '🟢 Idle'}</div>
+  1587→  1587→                        </TooltipContent>
+  1588→  1588→                      </Tooltip>
+  1589→  1589→                    </TooltipProvider>
+  1590→  1590→                  )
+  1591→  1591→                })}
+  1592→  1592→              </div>
+  1593→  1593→            </div>
+  1594→  1594→          ))}
+  1595→  1595→        </div>
+  1596→  1596→        {/* Legend */}
+  1597→  1597→        <div className="flex items-center gap-4 mt-3 ml-[120px] text-[10px] text-muted-foreground">
+  1598→  1598→          <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.7)' }} /> Ghost Load</div>
+  1599→  1599→          <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(14, 165, 233, 0.4)' }} /> Production</div>
+  1600→  1600→          <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)' }} /> Idle</div>
+  1601→  1601→        </div>
+  1602→  1602→      </div>
+  1603→  1603→    </div>
+  1604→  1604→  )
+  1605→  1605→}
+  1606→  1606→
+  1607→  1607→function SavingsTrendChart({ data }: { data: AnalyticsData['trend'] }) {
+  1608→  1608→  return (
+  1609→  1609→    <ResponsiveContainer width="100%" height={240}>
+  1610→  1610→      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+  1611→  1611→        <defs>
+  1612→  1612→          <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
+  1613→  1613→            <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
+  1614→  1614→            <stop offset="100%" stopColor="#10b981" stopOpacity={0.4} />
+  1615→  1615→          </linearGradient>
+  1616→  1616→        </defs>
+  1617→  1617→        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+  1618→  1618→        <XAxis dataKey="day" tick={{ fontSize: 9 }} stroke="#9ca3af" interval={4} />
+  1619→  1619→        <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" unit=" RM" />
+  1620→  1620→        <RTooltip
+  1621→  1621→          contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+  1622→  1622→          formatter={(v: any) => [formatRM(v), 'Savings']}
+  1623→  1623→        />
+  1624→  1624→        <Bar dataKey="rm" fill="url(#savingsGrad)" radius={[3, 3, 0, 0]} />
+  1625→  1625→      </BarChart>
+  1626→  1626→    </ResponsiveContainer>
+  1627→  1627→  )
+  1628→  1628→}
+  1629→  1629→
+  1630→  1630→function EnergyMixChart({ data }: { data: AnalyticsData['energyMix'] }) {
+  1631→  1631→  const colors = ['#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#8b5cf6', '#ec4899']
+  1632→  1632→  return (
+  1633→  1633→    <ResponsiveContainer width="100%" height={240}>
+  1634→  1634→      <BarChart data={data} layout="vertical" margin={{ top: 8, right: 8, left: 80, bottom: 0 }}>
+  1635→  1635→        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+  1636→  1636→        <XAxis type="number" tick={{ fontSize: 10 }} stroke="#9ca3af" unit=" kW" />
+  1637→  1637→        <YAxis type="category" dataKey="zone" tick={{ fontSize: 10 }} stroke="#9ca3af" width={70} />
+  1638→  1638→        <RTooltip
+  1639→  1639→          contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+  1640→  1640→          formatter={(v: any, _name: string, props: any) => [`${v} kW (${props.payload.rooms} rooms, ${props.payload.ghostRooms} ghost)`, 'Power']}
+  1641→  1641→        />
+  1642→  1642→        <Bar dataKey="kw" radius={[0, 4, 4, 0]}>
+  1643→  1643→          {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+  1644→  1644→        </Bar>
+  1645→  1645→      </BarChart>
+  1646→  1646→    </ResponsiveContainer>
+  1647→  1647→  )
+  1648→  1648→}
+  1649→  1649→
+  1650→  1650→// ============================================================================
+  1651→  1651→// VIEW: PRODUCTION SCHEDULE
+  1652→  1652→// ============================================================================
+  1653→  1653→
+  1654→  1654→function ScheduleView({ schedule, onRefresh }: { schedule: ProductionScheduleData | null; onRefresh: () => void }) {
+  1655→  1655→  if (!schedule) {
+  1656→  1656→    return (
+  1657→  1657→      <div className="grid place-items-center h-[40vh]">
+  1658→  1658→        <div className="flex flex-col items-center gap-3">
+  1659→  1659→          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  1660→  1660→          <div className="text-sm text-muted-foreground">Loading production schedule…</div>
+  1661→  1661→        </div>
+  1662→  1662→      </div>
+  1663→  1663→    )
+  1664→  1664→  }
+  1665→  1665→
+  1666→  1666→  const now = new Date(schedule.now)
+  1667→  1667→  const windowStart = new Date(now.getTime() - 12 * 3600 * 1000)
+  1668→  1668→  const windowEnd = new Date(now.getTime() + 24 * 3600 * 1000)
+  1669→  1669→  const totalHours = (windowEnd.getTime() - windowStart.getTime()) / 3600000
+  1670→  1670→
+  1671→  1671→  // Group by line
+  1672→  1672→  const lines = schedule.lines as any[]
+  1673→  1673→  const ghostWindows = schedule.ghostWindows
+  1674→  1674→
+  1675→  1675→  return (
+  1676→  1676→    <div className="space-y-4">
+  1677→  1677→      <div className="flex items-center justify-between flex-wrap gap-2">
+  1678→  1678→        <div>
+  1679→  1679→          <h2 className="text-xl font-semibold flex items-center gap-2">
+  1680→  1680→            <Calendar className="h-5 w-5 text-primary" />
+  1681→  1681→            Production Schedule
+  1682→  1682→          </h2>
+  1683→  1683→          <p className="text-sm text-muted-foreground">Shift rosters · batch timing · ghost load windows detected</p>
+  1684→  1684→        </div>
+  1685→  1685→        <Button variant="outline" size="sm" onClick={onRefresh}>
+  1686→  1686→          <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+  1687→  1687→        </Button>
+  1688→  1688→      </div>
+  1689→  1689→
+  1690→  1690→      {/* Gantt chart */}
+  1691→  1691→      <Card className="border-border/60">
+  1692→  1692→        <CardHeader className="pb-2">
+  1693→  1693→          <CardTitle className="text-base flex items-center gap-2">
+  1694→  1694→            <Timer className="h-4 w-4 text-primary" />
+  1695→  1695→            Production Gantt — Last 12h → Next 24h
+  1696→  1696→          </CardTitle>
+  1697→  1697→          <CardDescription className="text-xs">
+  1698→  1698→            Green bars = scheduled production · Red bars = ghost load windows (idle gaps ≥ 2h) · Dashed line = now
+  1699→  1699→          </CardDescription>
+  1700→  1700→        </CardHeader>
+  1701→  1701→        <CardContent>
+  1702→  1702→          <div className="overflow-x-auto">
+  1703→  1703→            <div className="min-w-[800px]">
+  1704→  1704→              {/* Hour axis */}
+  1705→  1705→              <div className="flex ml-[100px] mb-2">
+  1706→  1706→                {Array.from({ length: Math.ceil(totalHours) }, (_, i) => {
+  1707→  1707→                  const h = new Date(windowStart.getTime() + i * 3600000)
+  1708→  1708→                  const isNow = Math.abs(h.getTime() - now.getTime()) < 1800000
+  1709→  1709→                  return (
+  1710→  1710→                    <div key={i} className={`flex-1 text-center text-[9px] font-mono ${isNow ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
+  1711→  1711→                      {h.getHours()}h
+  1712→  1712→                    </div>
+  1713→  1713→                  )
+  1714→  1714→                })}
+  1715→  1715→              </div>
+  1716→  1716→
+  1717→  1717→              {/* Line rows */}
+  1718→  1718→              <div className="space-y-1.5">
+  1719→  1719→                {lines.map(line => {
+  1720→  1720→                  const batches = line.batches.sort((a: any, b: any) => a.startTime.getTime() - b.endTime.getTime())
+  1721→  1721→                  const lineGhosts = ghostWindows.filter(g => g.line === line.line)
+  1722→  1722→                  const isRunning = line.current !== null
+  1723→  1723→                  return (
+  1724→  1724→                    <div key={line.line} className="flex items-center gap-2">
+  1725→  1725→                      <div className="w-[95px] flex-shrink-0">
+  1726→  1726→                        <div className="text-xs font-medium truncate">{line.line}</div>
+  1727→  1727→                        <div className="flex items-center gap-1">
+  1728→  1728→                          {isRunning ? (
+  1729→  1729→                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+  1730→  1730→                          ) : (
+  1731→  1731→                            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
+  1732→  1732→                          )}
+  1733→  1733→                          <span className="text-[9px] text-muted-foreground">{isRunning ? 'Running' : 'Idle'}</span>
+  1734→  1734→                        </div>
+  1735→  1735→                      </div>
+  1736→  1736→                      <div className="relative flex-1 h-8 bg-zinc-50 rounded border border-border/60 overflow-hidden">
+  1737→  1737→                        {/* Now line */}
+  1738→  1738→                        <div
+  1739→  1739→                          className="absolute top-0 bottom-0 w-0.5 bg-primary/50 z-10"
+  1740→  1740→                          style={{ left: `${((now.getTime() - windowStart.getTime()) / (windowEnd.getTime() - windowStart.getTime())) * 100}%` }}
+  1741→  1741→                        />
+  1742→  1742→                        {/* Batch bars */}
+  1743→  1743→                        {batches.map((b: any) => {
+  1744→  1744→                          const left = ((b.startTime.getTime() - windowStart.getTime()) / (windowEnd.getTime() - windowStart.getTime())) * 100
+  1745→  1745→                          const width = ((b.endTime.getTime() - b.startTime.getTime()) / (windowEnd.getTime() - windowStart.getTime())) * 100
+  1746→  1746→                          if (left > 100 || left + width < 0) return null
+  1747→  1747→                          return (
+  1748→  1748→                            <TooltipProvider key={b.id}>
+  1749→  1749→                              <Tooltip>
+  1750→  1750→                                <TooltipTrigger asChild>
+  1751→  1751→                                  <div
+  1752→  1752→                                    className="absolute top-1 bottom-1 rounded bg-emerald-500/80 hover:bg-emerald-600 cursor-pointer flex items-center px-1 overflow-hidden"
+  1753→  1753→                                    style={{ left: `${Math.max(0, left)}%`, width: `${Math.min(100 - left, width)}%` }}
+  1754→  1754→                                  >
+  1755→  1755→                                    <span className="text-[8px] text-white font-mono truncate">{b.batchId}</span>
+  1756→  1756→                                  </div>
+  1757→  1757→                                </TooltipTrigger>
+  1758→  1758→                                <TooltipContent side="top" className="text-xs">
+  1759→  1759→                                  <div className="font-mono">{b.line} · {b.batchId}</div>
+  1760→  1760→                                  <div>{b.shift} shift</div>
+  1761→  1761→                                  <div>{new Date(b.startTime).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })} → {new Date(b.endTime).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })}</div>
+  1762→  1762→                                </TooltipContent>
+  1763→  1763→                              </Tooltip>
+  1764→  1764→                            </TooltipProvider>
+  1765→  1765→                          )
+  1766→  1766→                        })}
+  1767→  1767→                        {/* Ghost windows */}
+  1768→  1768→                        {lineGhosts.map((g, gi) => {
+  1769→  1769→                          const left = ((new Date(g.start).getTime() - windowStart.getTime()) / (windowEnd.getTime() - windowStart.getTime())) * 100
+  1770→  1770→                          const width = ((new Date(g.end).getTime() - new Date(g.start).getTime()) / (windowEnd.getTime() - windowStart.getTime())) * 100
+  1771→  1771→                          if (left > 100 || left + width < 0) return null
+  1772→  1772→                          return (
+  1773→  1773→                            <TooltipProvider key={gi}>
+  1774→  1774→                              <Tooltip>
+  1775→  1775→                                <TooltipTrigger asChild>
+  1776→  1776→                                  <div
+  1777→  1777→                                    className="absolute top-1 bottom-1 rounded border-2 border-dashed border-red-400 bg-red-100/50 cursor-pointer"
+  1778→  1778→                                    style={{ left: `${Math.max(0, left)}%`, width: `${Math.min(100 - left, width)}%` }}
+  1779→  1779→                                  >
+  1780→  1780→                                    <div className="text-[8px] text-red-700 font-mono text-center pt-0.5">GHOST {g.durationHours}h</div>
+  1781→  1781→                                  </div>
+  1782→  1782→                                </TooltipTrigger>
+  1783→  1783→                                <TooltipContent side="top" className="text-xs">
+  1784→  1784→                                  <div className="text-red-700 font-semibold">Ghost Load Window</div>
+  1785→  1785→                                  <div>{g.durationHours}h idle gap</div>
+  1786→  1786→                                  <div>{new Date(g.start).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })} → {new Date(g.end).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })}</div>
+  1787→  1787→                                </TooltipContent>
+  1788→  1788→                              </Tooltip>
+  1789→  1789→                            </TooltipProvider>
+  1790→  1790→                          )
+  1791→  1791→                        })}
+  1792→  1792→                      </div>
+  1793→  1793→                    </div>
+  1794→  1794→                  )
+  1795→  1795→                })}
+  1796→  1796→              </div>
+  1797→  1797→            </div>
+  1798→  1798→          </div>
+  1799→  1799→        </CardContent>
+  1800→  1800→      </Card>
+  1801→  1801→
+  1802→  1802→      {/* Ghost load windows summary */}
+  1803→  1803→      <Card className="border-red-200 bg-red-50/30">
+  1804→  1804→        <CardHeader className="pb-2">
+  1805→  1805→          <CardTitle className="text-base flex items-center gap-2">
+  1806→  1806→            <AlertTriangle className="h-4 w-4 text-red-500" />
+  1807→  1807→            Detected Ghost Load Windows
+  1808→  1808→          </CardTitle>
+  1809→  1809→          <CardDescription className="text-xs">Idle gaps ≥ 2h between production batches — prime targets for setback automation</CardDescription>
+  1810→  1810→        </CardHeader>
+  1811→  1811→        <CardContent>
+  1812→  1812→          {ghostWindows.length === 0 ? (
+  1813→  1813→            <div className="text-sm text-muted-foreground py-4 text-center">
+  1814→  1814→              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+  1815→  1815→              No ghost load windows detected in the next 24h.
+  1816→  1816→            </div>
+  1817→  1817→          ) : (
+  1818→  1818→            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+  1819→  1819→              {ghostWindows.map((g, i) => (
+  1820→  1820→                <div key={i} className="rounded-lg border border-red-200 bg-card p-3">
+  1821→  1821→                  <div className="flex items-center justify-between mb-1">
+  1822→  1822→                    <span className="font-mono font-semibold text-sm">{g.line}</span>
+  1823→  1823→                    <Badge variant="outline" className="text-[10px] text-red-700 border-red-300">{g.durationHours}h idle</Badge>
+  1824→  1824→                  </div>
+  1825→  1825→                  <div className="text-[11px] text-muted-foreground">
+  1826→  1826→                    {new Date(g.start).toLocaleString('en-MY', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+  1827→  1827→                    {' → '}
+  1828→  1828→                    {new Date(g.end).toLocaleString('en-MY', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+  1829→  1829→                  </div>
+  1830→  1830→                  <div className="mt-2 text-[10px] text-red-600 font-medium">
+  1831→  1831→                    Est. waste: {formatRM(g.durationHours * 9.18)} at RM 9.18/hr
+  1832→  1832→                  </div>
+  1833→  1833→                </div>
+  1834→  1834→              ))}
+  1835→  1835→            </div>
+  1836→  1836→          )}
+  1837→  1837→        </CardContent>
+  1838→  1838→      </Card>
+  1839→  1839→
+  1840→  1840→      {/* Batch list */}
+  1841→  1841→      <Card className="border-border/60">
+  1842→  1842→        <CardHeader className="pb-2">
+  1843→  1843→          <CardTitle className="text-base flex items-center gap-2">
+  1844→  1844→            <ClipboardList className="h-4 w-4 text-primary" />
+  1845→  1845→            Upcoming Batches
+  1846→  1846→          </CardTitle>
+  1847→  1847→          <CardDescription className="text-xs">{schedule.schedules.length} scheduled batches</CardDescription>
+  1848→  1848→        </CardHeader>
+  1849→  1849→        <CardContent>
+  1850→  1850→          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+  1851→  1851→            {schedule.schedules.map(s => {
+  1852→  1852→              const isPast = new Date(s.endTime) < now
+  1853→  1853→              const isCurrent = new Date(s.startTime) <= now && new Date(s.endTime) >= now
+  1854→  1854→              const isFuture = new Date(s.startTime) > now
+  1855→  1855→              return (
+  1856→  1856→                <div key={s.id} className={`rounded-lg border p-3 ${isCurrent ? 'border-emerald-300 bg-emerald-50/50' : isFuture ? 'border-border/60' : 'border-border/40 opacity-60'}`}>
+  1857→  1857→                  <div className="flex items-center justify-between mb-1">
+  1858→  1858→                    <span className="font-mono font-semibold text-sm">{s.batchId}</span>
+  1859→  1859→                    {isCurrent && <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-300">Live</Badge>}
+  1860→  1860→                    {isFuture && <Badge variant="outline" className="text-[10px]">Upcoming</Badge>}
+  1861→  1861→                    {isPast && <Badge variant="outline" className="text-[10px] text-muted-foreground">Done</Badge>}
+  1862→  1862→                  </div>
+  1863→  1863→                  <div className="text-xs text-muted-foreground">{s.line}</div>
+  1864→  1864→                  <div className="text-[11px] text-muted-foreground mt-1">
+  1865→  1865→                    {new Date(s.startTime).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })} → {new Date(s.endTime).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' })}
+  1866→  1866→                  </div>
+  1867→  1867→                  <div className="text-[10px] text-muted-foreground mt-0.5">{s.shift} shift</div>
+  1868→  1868→                </div>
+  1869→  1869→              )
+  1870→  1870→            })}
+  1871→  1871→          </div>
+  1872→  1872→        </CardContent>
+  1873→  1873→      </Card>
+  1874→  1874→    </div>
+  1875→  1875→  )
+  1876→  1876→}
+  1877→  1877→

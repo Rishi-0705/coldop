@@ -4,7 +4,7 @@
 
 export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 export type RoomStatus = 'GHOST_LOAD' | 'CONSOLIDATION' | 'OPTIMIZED' | 'ACTIVE' | 'IDLE'
-export type ViewKey = 'command' | 'map' | 'workorders' | 'notifications'
+export type ViewKey = 'command' | 'map' | 'workorders' | 'notifications' | 'analytics' | 'schedule'
 
 export interface Savings {
   tonightRM: number
@@ -188,4 +188,123 @@ export interface ActiveSetback {
     powerKW: number
     status: string
   } | null
+}
+
+// ===== Analytics types =====
+
+export interface HeatmapRoom {
+  roomCode: string
+  roomName: string
+  zone: string
+  hours: { hour: number; kw: number; isGhost: boolean; isProd: boolean }[]
+}
+
+export interface SavingsTrendPoint {
+  day: string
+  rm: number
+  co2: number
+}
+
+export interface ROI {
+  saasMonthlyCost: number
+  monthlySavings: number
+  roiMonths: number
+  annualSavings: number
+  annualSaaS: number
+  netAnnualBenefit: number
+  roiPercent: number
+}
+
+export interface TopGhostRoom {
+  roomCode: string
+  roomName: string
+  zone: string
+  totalRM: number
+  totalHours: number
+  eventCount: number
+}
+
+export interface EnergyMixItem {
+  zone: string
+  kw: number
+  rooms: number
+  ghostRooms: number
+}
+
+export interface AnalyticsData {
+  heatmap: HeatmapRoom[]
+  trend: SavingsTrendPoint[]
+  roi: ROI
+  topRooms: TopGhostRoom[]
+  energyMix: EnergyMixItem[]
+  tariff: number
+}
+
+export interface MeterTimelinePoint {
+  t: string
+  iso: string
+  kw: number
+  idle: number
+  isGhost: boolean
+  isProd: boolean
+}
+
+export interface MeterRoomCurrent {
+  code: string
+  name: string
+  currentKW: number
+  idleKW: number
+  isGhost: boolean
+}
+
+export interface MeterData {
+  timeline: MeterTimelinePoint[]
+  rooms: MeterRoomCurrent[]
+  hours: number
+}
+
+export interface SetbackHistoryItem {
+  id: string
+  roomCode: string | null
+  roomName: string | null
+  zone: string | null
+  type: string
+  startSetpoint: number
+  endSetpoint: number
+  status: string
+  reason: string
+  currentStep: number
+  totalSteps: number
+  steps: { step: number; setpoint: number; atSec: number; confirmed: boolean }[]
+  startedAt: string | null
+  completedAt: string | null
+  abortedAt: string | null
+  abortReason: string | null
+  workOrderId: string | null
+  maxPowerKW: number | null
+  estRmSaved: number
+}
+
+export interface ProductionBatch {
+  id: string
+  line: string
+  batchId: string
+  startTime: string
+  endTime: string
+  shift: string
+  active: boolean
+}
+
+export interface GhostWindow {
+  line: string
+  start: string
+  end: string
+  durationHours: number
+}
+
+export interface ProductionScheduleData {
+  schedules: ProductionBatch[]
+  lines: any[]
+  ghostWindows: GhostWindow[]
+  now: string
 }
