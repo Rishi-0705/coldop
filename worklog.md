@@ -363,3 +363,46 @@ Stage Summary:
 ## Unresolved Issues / Next Steps
 - No known bugs — platform is stable
 - Potential next features: PDF report export, email/SMS notification simulation, multi-factory support, historical trend comparison, mobile companion app
+
+---
+Task ID: 9 (Export + Multi-Zone + Quick Actions + Dispatch Log)
+Agent: orchestrator (main)
+Task: Add CSV export, multi-zone power comparison chart, Quick Actions floating panel, notification dispatch log.
+
+Work Log:
+- Added 4 new API routes:
+  • /api/export/savings (GET) — CSV export of savings summary + ghost load events + setback events with proper headers (Content-Type: text/csv, Content-Disposition: attachment)
+  • /api/export/work-orders (GET) — CSV export of all work orders + pallet moves with FEFO ranks and allergen status
+  • /api/multi-zone (GET) — 24-hour power data for all 8 rooms with per-room color, current/peak kW, ghost hours, toggle visibility
+  • /api/dispatch-log (GET) — simulated notification dispatch log (SMS/WhatsApp/Email) with recipient, status (DELIVERED/SENT/ACKNOWLEDGED), severity, RM impact, channel stats
+- Added MultiZoneComparison component to Analytics: interactive multi-line chart (Recharts LineChart) showing 24h power draw for all 8 rooms simultaneously, toggleable room chips with color dots, legend with current/peak values per room, summary stats (peak kW, ghost hours, avg kW)
+- Added CSV export buttons to Analytics header: "Savings CSV" and "Work Orders CSV" — opens download in new tab
+- Added DispatchLogPanel to Settings: scrollable log of SMS/WhatsApp/Email dispatches with channel icons (Smartphone/MessageSquare/Mail), severity badges, status badges (DELIVERED/SENT/ACKNOWLEDGED), recipient info, timestamp, RM impact, channel count summary in header
+- Created QuickActions floating panel: fixed bottom-right, pulsing FAB with critical+high count badge, expands to show top 3 open actionable notifications with one-tap Approve/Defer/Dismiss — available on ALL views
+- Added 3 new types (MultiZoneData, MultiZoneRoom, DispatchEntry, DispatchLog)
+- Browser verification: all features render without errors
+  • Multi-zone chart shows 8 rooms, Peak 48.6 kW at 00:00, 6 ghost-load hours, Avg 14.9 kW
+  • CSV exports return HTTP 200 with proper file sizes (1265 bytes savings, 749 bytes work orders)
+  • Quick Actions FAB shows "2" badge (critical+high count), expands to 2 pending notifications
+  • Dispatch log shows 4 dispatches · 2 critical · SMS/WhatsApp/Email with recipient details
+
+Stage Summary:
+- ✅ CSV export for savings + work orders (investor-ready deliverable)
+- ✅ Multi-zone 24h power comparison chart with interactive room toggles
+- ✅ Quick Actions floating panel for one-tap approve from any view
+- ✅ Notification dispatch log simulating SMS/WhatsApp/Email channels
+- ✅ All 4 new APIs tested and verified
+- ✅ Lint clean, no console errors
+
+## Current Project Status
+- 8 views: Command Center, Cold Room Map, Work Orders, Notifications, WMS Stock, Analytics, Schedule, Settings
+- 3 mini-services: Next.js (:3000), BMS simulator (:3004), Realtime hub (:3003)
+- 19 API routes covering all platform functionality
+- 11 component files in src/components/coldops/ (including motion.tsx + quick-actions.tsx)
+- All modules from original brief implemented + 4 new investor-ready features
+- Real-time Socket.io updates, framer-motion view transitions, Quick Actions floating panel
+- Progressive setback engine makes actual HTTP calls to BMS simulator
+
+## Unresolved Issues / Next Steps
+- No known bugs — platform is stable and feature-complete
+- Potential next features: PDF report generation (beyond CSV), multi-factory dashboard, historical trend comparison, mobile companion app, BACnet/Modbus adapter stubs

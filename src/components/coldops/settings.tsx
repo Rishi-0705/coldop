@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   Settings as SettingsIcon, Server, Shield, Users, DollarSign, Zap,
-  Loader2, RefreshCw, Save, Check, AlertTriangle, ThermometerSun, Clock
+  Loader2, RefreshCw, Save, Check, AlertTriangle, ThermometerSun, Clock,
+  Bell, Smartphone, Mail, MessageSquare
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,9 +12,10 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import type { SettingsData, AppConfig } from '@/lib/coldops/types'
-import { formatRM } from '@/lib/coldops/ui'
+import { formatRM, timeAgo } from '@/lib/coldops/ui'
 
 export function SettingsView() {
   const [data, setData] = useState<SettingsData | null>(null)
@@ -282,7 +284,110 @@ export function SettingsView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Notification Dispatch Log */}
+      <DispatchLogPanel />
     </div>
+  )
+}
+
+// ============================================================================
+// NOTIFICATION DISPATCH LOG
+// ============================================================================
+
+function DispatchLogPanel() {
+  const [data, setData] = useState<{ log: any[]; stats: any } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/dispatch-log')
+      .then(r => r.json())
+      .then(d => setData(d))
+      .catch(e => console.error('dispatch log fetch failed', e))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const channelIcon = (ch: string) => {
+    switch (ch) {
+      case 'SMS': return <Smartphone className="h-3.5 w-3.5 text-sky-500" />
+      case 'WHATSAPP': return <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+      case 'EMAIL': return <Mail className="h-3.5 w-3.5 text-amber-500" />
+      default: return <Bell className="h-3.5 w-3.5" />
+    }
+  }
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'DELIVERED': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+      case 'SENT': return 'bg-sky-100 text-sky-700 border-sky-200'
+      case 'ACKNOWLEDGED': return 'bg-zinc-100 text-zinc-600 border-zinc-200'
+      case 'FAILED': return 'bg-red-100 text-red-700 border-red-200'
+      default: return 'bg-muted text-muted-foreground'
+    }
+  }
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Bell className="h-4 w-4 text-primary" />
+              Notification Dispatch Log
+            </CardTitle>
+            <CardDescription className="text-xs">
+              {loading ? 'Loading...' : `${data?.stats.total || 0} dispatches · ${data?.stats.criticalDispatched || 0} critical · SMS/WhatsApp/Email simulation`}
+            </CardDescription>
+          </div>
+          {!loading && data && (
+            <div className="flex gap-1.5">
+              <Badge variant="outline" className="text-[10px]"><Smartphone className="h-3 w-3 mr-1 text-sky-500" />{data.stats.byChannel.SMS || 0}</Badge>
+              <Badge variant="outline" className="text-[10px]"><MessageSquare className="h-3 w-3 mr-1 text-emerald-500" />{data.stats.byChannel.WHATSAPP || 0}</Badge>
+              <Badge variant="outline" className="text-[10px]"><Mail className="h-3 w-3 mr-1 text-amber-500" />{data.stats.byChannel.EMAIL || 0}</Badge>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="grid place-items-center h-[150px]">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !data || data.log.length === 0 ? (
+          <div className="text-center py-6">
+            <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+            <div className="text-sm text-muted-foreground">No dispatches recorded.</div>
+          </div>
+        ) : (
+          <ScrollArea className="h-[300px] pr-2">
+            <div className="space-y-1.5">
+              {data.log.map((entry, i) => (
+                <div key={entry.id} className="flex items-start gap-2 text-xs rounded-md border border-border/60 p-2.5 hover:bg-muted/30 transition-colors">
+                  <div className="mt-0.5">{channelIcon(entry.channel)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <span className="font-medium truncate">{entry.subject}</span>
+                      <Badge variant="outline" className={`text-[9px] ${entry.severity === 'CRITICAL' ? 'text-red-700 border-red-300' : entry.severity === 'HIGH' ? 'text-orange-700 border-orange-300' : ''}`}>
+                        {entry.severity}
+                      </Badge>
+                      <Badge variant="outline" className={`text-[9px] ${statusColor(entry.status)}`}>
+                        {entry.status}
+                      </Badge>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground truncate">{entry.message}</div>
+                    <div className="text-[9px] text-muted-foreground mt-0.5 font-mono">
+                      → {entry.recipient} ({entry.recipientName}) · {entry.channel} · {timeAgo(entry.sentAt)}
+                      {entry.roomCode && ` · ${entry.roomCode}`}
+                      {entry.rmImpact > 0 && ` · ${formatRM(entry.rmImpact)}`}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

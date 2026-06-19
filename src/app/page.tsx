@@ -18,6 +18,7 @@ import { ScheduleView } from '@/components/coldops/schedule'
 import { WmsView } from '@/components/coldops/wms'
 import { SettingsView } from '@/components/coldops/settings'
 import { ViewTransition } from '@/components/coldops/motion'
+import { QuickActions } from '@/components/coldops/quick-actions'
 import type { ViewKey } from '@/lib/coldops/types'
 
 // ============================================================================
@@ -194,6 +195,7 @@ export default function ColdOpsPage() {
           </ViewTransition>
         )}
       </main>
+      <QuickActions notifs={notifs} onAction={fetchAll} />
       <Footer />
     </div>
   )

@@ -487,3 +487,54 @@ export interface WmsMoveHistory {
   moves: WmsMove[]
   stats: { total: number; uniqueProducts: number; uniqueRooms: number }
 }
+
+// ===== Multi-Zone types =====
+
+export interface MultiZoneRoom {
+  code: string
+  name: string
+  zone: string
+  color: string
+  maxPowerKW: number
+  data: { hour: number; kw: number; isGhost: boolean }[]
+}
+
+export interface MultiZoneData {
+  hours: { hour: number; label: string }[]
+  rooms: MultiZoneRoom[]
+  summary: {
+    totalKW: number
+    peakKW: number
+    peakHour: number
+    ghostHours: number
+    roomCount: number
+  }
+}
+
+// ===== Dispatch Log types =====
+
+export interface DispatchEntry {
+  id: string
+  notificationId: string
+  channel: 'SMS' | 'WHATSAPP' | 'EMAIL'
+  recipient: string
+  recipientName: string
+  subject: string
+  message: string
+  severity: Severity
+  rmImpact: number
+  roomCode: string | null
+  status: 'DELIVERED' | 'SENT' | 'ACKNOWLEDGED' | 'FAILED'
+  sentAt: string
+  acknowledgedAt: string | null
+}
+
+export interface DispatchLog {
+  log: DispatchEntry[]
+  stats: {
+    total: number
+    byChannel: Record<string, number>
+    byStatus: Record<string, number>
+    criticalDispatched: number
+  }
+}
