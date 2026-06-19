@@ -1,8 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// ColdOps — Prisma schema
+// Cold-chain energy intelligence for F&B manufacturing (Marigold anchor customer)
+// SQLite (sandbox) — abstracted via repository layer so could swap to Timescale later.
 
 generator client {
   provider = "prisma-client-js"
@@ -13,20 +11,269 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ============================================================
+// Master data
+// ============================================================
+
+model ColdRoom {
+  id            String   @id @default(cuid())
+  code          String   @unique // CR-01, CR-02, ...
+  name          String
+  zone          String   // Chilled / Blast / Dairy WIP / Finished Goods / Raw Milk / Juice
+  targetTemp    Float    // °C
+  minSafeTemp   Float    // °C — hard floor
+  maxSafeTemp   Float    // °C — hard ceiling
+  maxPowerKW    Float    // compressor max draw
+  capacityPallets Int
+  floorX        Int      // position on factory floor map (0..100)
+  floorY        Int      // 0..100
+  floorW        Int      @default(20)
+  floorH        Int      @default(15)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  pallets       Pallet[]
+  meterReadings MeterReading[]
+  ghostLoads    GhostLoadEvent[]
+  setbacks      SetbackEvent[]
+  notifications Notification[]
+  workOrders    WorkOrder[]
+
+  @@index([code])
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model ProductSpec {
+  id            String   @id @default(cuid())
+  productCode   String   @unique // e.g. MARIGOLD-FM-1L
+  productName   String
+  category      String   // Dairy / Beverage / Raw Material / Juice
+  minTemp       Float    // °C storage min
+  maxTemp       Float    // °C storage max
+  shelfLifeDays Int
+  allergenTags  String   // comma-separated: MILK,SOY,NUTS (empty if none)
+  quarantine    Boolean  @default(false)
+  palletKg      Float    @default(1000)
+  createdAt     DateTime @default(now())
+
+  pallets       Pallet[]
+}
+
+model Pallet {
+  id            String   @id @default(cuid())
+  lotNo         String   @unique
+  productCode   String
+  productName   String   // denormalized for quick display
+  roomId        String
+  bayCode       String   // e.g. A1, B3 — location within room
+  quantity      Int      @default(1) // pallets in this lot
+  expiryDate    DateTime
+  receivedAt    DateTime @default(now())
+  allergenTags  String
+  quarantine    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  room          ColdRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  product       ProductSpec? @relation(fields: [productCode], references: [productCode])
+
+  moves         WorkOrderMove[]
+
+  @@index([roomId])
+  @@index([productCode])
+  @@index([expiryDate])
+}
+
+// ============================================================
+// Operational data
+// ============================================================
+
+model ProductionSchedule {
+  id          String   @id @default(cuid())
+  line        String   // e.g. YOGURT-LINE-1, JUICE-LINE-2
+  batchId     String
+  startTime   DateTime
+  endTime     DateTime
+  shift       String   // Morning / Evening / Night
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([startTime, endTime])
+  @@index([line])
+}
+
+model MeterReading {
+  id          String   @id @default(cuid())
+  roomId      String
+  timestamp   DateTime
+  powerKW     Float
+  isProductionActive Boolean @default(false) // was a production schedule active at this time?
+  isGhostLoad Boolean  @default(false) // derived: power > idle baseline AND !isProductionActive
+  idleBaselineKW Float @default(0)
+  createdAt   DateTime @default(now())
+
+  room        ColdRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, timestamp])
+  @@index([isGhostLoad])
+}
+
+model GhostLoadEvent {
+  id           String   @id @default(cuid())
+  roomId       String
+  startTime    DateTime
+  endTime      DateTime?
+  durationHours Float   @default(0)
+  actualKW     Float
+  expectedIdleKW Float
+  rmWaste      Float    @default(0)
+  severity     String   // CRITICAL / HIGH / MEDIUM / LOW
+  severityScore Int    @default(0)
+  status       String   @default("ACTIVE") // ACTIVE / RESOLVED / DISMISSED
+  rule         String   // e.g. OVERNIGHT_GHOST_LOAD, WEEKEND_GHOST_LOAD, BETWEEN_BATCH
+  createdAt    DateTime @default(now())
+
+  room         ColdRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, startTime])
+  @@index([status, severity])
+}
+
+model ConsolidationOpportunity {
+  id              String   @id @default(cuid())
+  sourceRoomIds   String   // comma-separated
+  destRoomId      String
+  palletCount     Int
+  estLaborMinutes Int
+  energySavingRM  Float
+  laborCostRM     Float
+  netBenefitRM    Float
+  idleWindowHours Float
+  status          String   @default("OPEN") // OPEN / APPROVED / EXECUTING / COMPLETED / DISMISSED
+  createdAt       DateTime @default(now())
+  approvedAt      DateTime?
+  workOrderId     String?  @unique
+
+  workOrder       WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  @@index([status])
+}
+
+model WorkOrder {
+  id            String   @id @default(cuid())
+  type          String   // CONSOLIDATION / SETBACK / DOOR_CHECK / OTHER
+  roomId        String?
+  title         String
+  status        String   @default("PENDING") // PENDING / ASSIGNED / IN_PROGRESS / COMPLETED / CANCELLED
+  assignedTo    String?
+  movesJson     String   // JSON array of move instructions (denormalized)
+  totalMoves    Int      @default(0)
+  completedMoves Int     @default(0)
+  estLaborMinutes Int    @default(0)
+  rmSavedPerHour Float   @default(0)
+  rmSaved       Float    @default(0)
+  createdAt     DateTime @default(now())
+  assignedAt    DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+
+  room          ColdRoom? @relation(fields: [roomId], references: [id])
+  opportunity   ConsolidationOpportunity?
+  moves         WorkOrderMove[]
+
+  @@index([status])
+  @@index([roomId])
+}
+
+model WorkOrderMove {
+  id            String   @id @default(cuid())
+  workOrderId   String
+  palletId      String
+  lotNo         String
+  productName   String
+  fromRoomCode  String
+  fromBayCode   String
+  toRoomCode    String
+  toBayCode     String
+  sequence      Int
+  fefoRank      Int      @default(0) // earlier expiry = lower rank = moves first
+  allergenOk    Boolean  @default(true)
+  confirmedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  pallet        Pallet    @relation(fields: [palletId], references: [id])
+
+  @@index([workOrderId])
+}
+
+model SetbackEvent {
+  id           String   @id @default(cuid())
+  roomId       String
+  type         String   // SETBACK (cool down) / RECOVERY (warm back up)
+  startSetpoint Float
+  endSetpoint  Float
+  status       String   @default("SCHEDULED") // SCHEDULED / EXECUTING / COMPLETED / ABORTED
+  reason       String   // GHOST_LOAD / CONSOLIDATION / MANUAL
+  stepsJson    String   // JSON array of { step, setpoint, atSec, confirmed }
+  totalSteps   Int      @default(4)
+  currentStep  Int      @default(0)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  abortedAt    DateTime?
+  abortReason  String?
+  workOrderId  String?
+  createdAt    DateTime @default(now())
+
+  room         ColdRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, status])
+  @@index([status])
+}
+
+model Notification {
+  id           String   @id @default(cuid())
+  type         String   // GHOST_LOAD / CONSOLIDATION / SETBACK / WORK_ORDER / SAFETY / SYSTEM
+  severity     String   // CRITICAL / HIGH / MEDIUM / LOW
+  severityScore Int     @default(0)
+  title        String
+  message      String
+  roomId       String?
+  rmImpact     Float    @default(0)
+  rmPerHour    Float    @default(0)
+  durationHours Float   @default(0)
+  actionType   String?  // APPROVE_SETBACK / APPROVE_CONSOLIDATION / DISMISS / NONE
+  refId        String?  // ghostLoadId / workOrderId / setbackId / opportunityId
+  status       String   @default("OPEN") // OPEN / APPROVED / DEFERRED / DISMISSED / RESOLVED
+  channels     String   @default("DASHBOARD") // comma: DASHBOARD,SMS,WHATSAPP,EMAIL
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  resolvedAt   DateTime?
+
+  room         ColdRoom? @relation(fields: [roomId], references: [id])
+
+  @@index([status, severityScore])
+  @@index([createdAt])
+}
+
+model SavingsCounter {
+  id           Int      @id @default(1)
+  tonightRM    Float    @default(0)
+  thisWeekRM   Float    @default(0)
+  thisMonthRM  Float    @default(0)
+  co2Tonnes    Float    @default(0)
+  ghostLoadHours Float  @default(0)
+  lastResetAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AppConfig {
+  id           Int      @id @default(1)
+  tnbTariffRM  Float    @default(0.509) // RM per kWh commercial tariff
+  idleThresholdPct Float @default(0.30) // 30% of active baseline = idle threshold
+  minIdleDurationHours Float @default(2.0)
+  consolidationThresholdPct Float @default(0.25) // rooms < 25% utilization = candidate
+  laborCostPerMinuteRM Float @default(0.83) // ~RM 50/hour for warehouse staff
+  co2PerKgRM   Float    @default(0.583) // kg CO2 per kWh (TNB grid factor)
+  rampStepSeconds Int   @default(4) // compressed from 15min for demo
+  updatedAt    DateTime @updatedAt
 }

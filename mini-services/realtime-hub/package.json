@@ -1,0 +1,21 @@
+{
+  "name": "realtime-hub",
+  "version": "1.0.0",
+  "description": "ColdOps Realtime Hub — Socket.io broadcast hub + REST /broadcast endpoint",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot index.ts",
+    "start": "bun index.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}
