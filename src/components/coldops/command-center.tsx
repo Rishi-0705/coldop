@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   Zap, TrendingDown, Leaf, AlertTriangle, Activity, CheckCircle2,
   ThermometerSun, Layers, Bell, Loader2
@@ -13,7 +14,7 @@ import {
   Tooltip as RTooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
 import type {
-  DashboardData, RoomWithBms, ActiveSetback, MeterData
+  DashboardData, RoomWithBms, ActiveSetback, MeterData, ForecastData
 } from '@/lib/coldops/types'
 import {
   severityColor, roomStatusColor, formatRM, formatKW, formatTemp,
@@ -245,7 +246,132 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
           </div>
         </CardContent>
       </Card>
+
+      {/* Energy Cost Forecast */}
+      <EnergyForecastWidget />
     </div>
+  )
+}
+
+// ============================================================================
+// ENERGY FORECAST WIDGET
+// ============================================================================
+
+function EnergyForecastWidget() {
+  const [forecast, setForecast] = useState<ForecastData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/forecast')
+      .then(r => r.json())
+      .then(d => setForecast(d))
+      .catch(e => console.error('forecast fetch failed', e))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading || !forecast) {
+    return (
+      <Card className="border-border/60">
+        <CardContent className="p-6 grid place-items-center h-[200px]">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const { current, breakdown, roi, projection } = forecast
+  const savingsPct = current.monthlyCostWithout > 0
+    ? Math.round((current.monthlySavings / current.monthlyCostWithout) * 100)
+    : 0
+
+  return (
+    <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-card to-card">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-emerald-500" />
+              Energy Cost Forecast & ROI
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Projected monthly cost: {formatRM(current.monthlyCostWithout)} → {formatRM(current.monthlyCostWith)} ({savingsPct}% reduction)
+            </CardDescription>
+          </div>
+          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+            {roi.roiPercent}% ROI · {roi.paybackDays}d payback
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {/* Cost comparison */}
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border/60 p-3 bg-card/60">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Without ColdOps</div>
+              <div className="text-2xl font-bold text-red-600">{formatRM(current.monthlyCostWithout)}</div>
+              <div className="text-[10px] text-muted-foreground">per month at {current.totalPowerKW} kW continuous</div>
+            </div>
+            <div className="rounded-lg border border-emerald-200 p-3 bg-emerald-50/50">
+              <div className="text-[10px] text-emerald-700 uppercase tracking-wide mb-1">With ColdOps</div>
+              <div className="text-2xl font-bold text-emerald-700">{formatRM(current.monthlyCostWith)}</div>
+              <div className="text-[10px] text-muted-foreground">
+                Save {formatRM(current.monthlySavings)}/mo · {formatRM(roi.annualSavings)}/yr
+              </div>
+            </div>
+          </div>
+
+          {/* 6-month projection chart */}
+          <div className="lg:col-span-2">
+            <div className="text-xs font-medium mb-2 flex items-center gap-1.5">
+              <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+              6-Month Cost Projection
+            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <AreaChart data={projection} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="withoutGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="withGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="#9ca3af" />
+                <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" unit=" RM" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <RTooltip
+                  contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                  formatter={(v: any, name: string) => [formatRM(v), name === 'withoutColdOps' ? 'Without ColdOps' : name === 'withColdOps' ? 'With ColdOps' : 'Savings']}
+                />
+                <Area type="monotone" dataKey="withoutColdOps" stroke="#ef4444" strokeWidth={2} fill="url(#withoutGrad)" />
+                <Area type="monotone" dataKey="withColdOps" stroke="#10b981" strokeWidth={2} fill="url(#withGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Savings breakdown */}
+        <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-border/60">
+          <div className="text-center">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Ghost Load</div>
+            <div className="text-lg font-bold text-red-600">{formatRM(breakdown.ghostLoad.monthlySavings)}</div>
+            <div className="text-[10px] text-muted-foreground">{breakdown.ghostLoad.count} active</div>
+          </div>
+          <div className="text-center">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Consolidation</div>
+            <div className="text-lg font-bold text-amber-600">{formatRM(breakdown.consolidation.monthlySavings)}</div>
+            <div className="text-[10px] text-muted-foreground">{breakdown.consolidation.candidateRooms} rooms</div>
+          </div>
+          <div className="text-center">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Setback</div>
+            <div className="text-lg font-bold text-emerald-600">{formatRM(breakdown.setback.monthlySavings)}</div>
+            <div className="text-[10px] text-muted-foreground">{breakdown.setback.activeCount} active</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

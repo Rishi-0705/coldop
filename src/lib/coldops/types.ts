@@ -422,3 +422,68 @@ export interface RoomDetail {
     latestExpiry: string | null
   }
 }
+
+// ===== Forecast types =====
+
+export interface ForecastData {
+  current: {
+    totalPowerKW: number
+    monthlyCostWithout: number
+    monthlyCostWith: number
+    monthlySavings: number
+  }
+  breakdown: {
+    ghostLoad: { count: number; monthlySavings: number; rooms: { code: string; rmPerHour: number }[] }
+    consolidation: { candidateRooms: number; monthlySavings: number }
+    setback: { activeCount: number; monthlySavings: number }
+  }
+  roi: {
+    saasMonthlyCost: number
+    netMonthlyBenefit: number
+    roiPercent: number
+    paybackDays: number
+    annualSavings: number
+    annualCO2Saved: number
+  }
+  projection: { month: string; withoutColdOps: number; withColdOps: number; savings: number }[]
+  tariff: number
+}
+
+// ===== Notification Detail types =====
+
+export interface NotificationTimelineEvent {
+  at: string
+  event: string
+  description: string
+  rmImpact?: number
+}
+
+export interface NotificationDetail {
+  notification: Notification
+  related: any
+  timeline: NotificationTimelineEvent[]
+}
+
+// ===== WMS Move History types =====
+
+export interface WmsMove {
+  id: string
+  lotNo: string
+  productName: string
+  fromRoomCode: string
+  fromBayCode: string
+  toRoomCode: string
+  toBayCode: string
+  sequence: number
+  fefoRank: number
+  allergenOk: boolean
+  confirmedAt: string
+  workOrderId: string
+  workOrderTitle: string | null
+  workOrderStatus: string | null
+}
+
+export interface WmsMoveHistory {
+  moves: WmsMove[]
+  stats: { total: number; uniqueProducts: number; uniqueRooms: number }
+}

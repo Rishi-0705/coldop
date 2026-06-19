@@ -17,6 +17,7 @@ import { AnalyticsView } from '@/components/coldops/analytics'
 import { ScheduleView } from '@/components/coldops/schedule'
 import { WmsView } from '@/components/coldops/wms'
 import { SettingsView } from '@/components/coldops/settings'
+import { ViewTransition } from '@/components/coldops/motion'
 import type { ViewKey } from '@/lib/coldops/types'
 
 // ============================================================================
@@ -171,22 +172,26 @@ export default function ColdOpsPage() {
       <main className="flex-1 container mx-auto px-4 py-6 max-w-[1600px]">
         {loading && !dashboard ? (
           <LoadingState />
-        ) : view === 'command' ? (
-          <CommandCenter dashboard={dashboard} rooms={rooms} activeSetbacks={activeSetbacks} meterData={meterData} onNeedMeter={fetchMeter} />
-        ) : view === 'map' ? (
-          <ColdRoomMap rooms={rooms} plan={plan} onExecutePlan={fetchAll} />
-        ) : view === 'workorders' ? (
-          <WorkOrdersView workOrders={workOrders} activeSetbacks={activeSetbacks} onComplete={fetchAll} />
-        ) : view === 'notifications' ? (
-          <NotificationsView notifs={notifs} counts={notifCounts} onAction={fetchAll} />
-        ) : view === 'analytics' ? (
-          <AnalyticsView analytics={analytics} meterData={meterData} setbackHistory={setbackHistory} onRefresh={fetchAnalytics} />
-        ) : view === 'schedule' ? (
-          <ScheduleView schedule={schedule} onRefresh={fetchSchedule} />
-        ) : view === 'wms' ? (
-          <WmsView />
         ) : (
-          <SettingsView />
+          <ViewTransition viewKey={view}>
+            {view === 'command' ? (
+              <CommandCenter dashboard={dashboard} rooms={rooms} activeSetbacks={activeSetbacks} meterData={meterData} onNeedMeter={fetchMeter} />
+            ) : view === 'map' ? (
+              <ColdRoomMap rooms={rooms} plan={plan} onExecutePlan={fetchAll} />
+            ) : view === 'workorders' ? (
+              <WorkOrdersView workOrders={workOrders} activeSetbacks={activeSetbacks} onComplete={fetchAll} />
+            ) : view === 'notifications' ? (
+              <NotificationsView notifs={notifs} counts={notifCounts} onAction={fetchAll} />
+            ) : view === 'analytics' ? (
+              <AnalyticsView analytics={analytics} meterData={meterData} setbackHistory={setbackHistory} onRefresh={fetchAnalytics} />
+            ) : view === 'schedule' ? (
+              <ScheduleView schedule={schedule} onRefresh={fetchSchedule} />
+            ) : view === 'wms' ? (
+              <WmsView />
+            ) : (
+              <SettingsView />
+            )}
+          </ViewTransition>
         )}
       </main>
       <Footer />

@@ -323,3 +323,43 @@ Stage Summary:
 - ✅ All APIs tested and verified
 - ✅ Lint clean, no console errors
 - The platform now covers all modules from the original brief: Ghost Load detection, Cold Room utilization, Progressive setback, WMS integration, Production scheduling, Analytics/ROI, Settings/Admin
+
+---
+Task ID: 8 (Forecast + Notification Detail + Move History + Motion)
+Agent: orchestrator (main)
+Task: Add Energy Cost Forecast widget, Notification Detail Modal with timeline, WMS Move History, framer-motion view transitions.
+
+Work Log:
+- Added 3 new API routes:
+  • /api/forecast — energy cost forecast: monthly cost without vs with ColdOps, 6-month projection, ROI (payback days, annual savings, CO2), savings breakdown by ghost load/consolidation/setback
+  • /api/notifications/[id] — notification detail with action timeline (CREATED, APPROVED, GHOST_LOAD_DETECTED, SETBACK_*, WORK_ORDER_*) and related entities (ghost events, setbacks, work orders)
+  • /api/wms/moves — pallet move history (confirmed WorkOrderMove records with stats: total, uniqueProducts, uniqueRooms)
+- Added EnergyForecastWidget to Command Center: cost comparison cards (without vs with ColdOps), 6-month projection area chart (red vs green), savings breakdown by category (ghost load/consolidation/setback), ROI badge with payback days
+- Added NotificationDetailModal: click any notification → modal with message + RM impact grid, action buttons, vertical timeline with color-coded events, related records (ghost events, setbacks, work orders), footer with metadata
+- Added WmsMoveHistory component to WMS view: scrollable list of confirmed pallet moves with sequence number, product, lot, from→to bay transitions, timestamp — shows empty state when no moves yet
+- Created motion.tsx with ViewTransition (fade+slide on view change), MotionCard (hover lift), MotionListItem (staggered entrance), AnimatedNumber, LiveDot (pulsing indicator)
+- Wrapped all view rendering in ViewTransition for smooth animated transitions between views
+- Added framer-motion animations to notifications list (layout animations, staggered entrance, exit animations)
+- Added 6 new types (ForecastData, NotificationTimelineEvent, NotificationDetail, WmsMove, WmsMoveHistory)
+- Browser verification: all 8 views render without errors, Energy Forecast shows real data (RM 22,802 → RM 15,008, 34% reduction, 156% ROI, 20-day payback), Notification Detail Modal opens with 7-event timeline, WMS Move History populates after consolidation (11 moves, 8 products, 3 rooms), framer-motion transitions work smoothly
+
+Stage Summary:
+- ✅ Energy Cost Forecast widget with 6-month projection chart + ROI calculator
+- ✅ Notification Detail Modal with action timeline + related records
+- ✅ WMS Move History section tracking all pallet movements
+- ✅ Framer-motion view transitions across all 8 views
+- ✅ All 3 new APIs tested and verified
+- ✅ Lint clean, no console errors
+- ✅ Full end-to-end flow verified: consolidation → complete → 11 moves recorded → move history populated
+
+## Current Project Status
+- 8 views: Command Center, Cold Room Map, Work Orders, Notifications, WMS Stock, Analytics, Schedule, Settings
+- 3 mini-services: Next.js (:3000), BMS simulator (:3004), Realtime hub (:3003)
+- 17 API routes covering all platform functionality
+- All modules from original brief implemented: Ghost Load detection, Cold Room utilization, Progressive setback, WMS integration, Production scheduling, Analytics/ROI, Settings/Admin
+- Real-time Socket.io updates across all views
+- Progressive setback engine makes actual HTTP calls to BMS simulator with readback confirmations + safety abort
+
+## Unresolved Issues / Next Steps
+- No known bugs — platform is stable
+- Potential next features: PDF report export, email/SMS notification simulation, multi-factory support, historical trend comparison, mobile companion app

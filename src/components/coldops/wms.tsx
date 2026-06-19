@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import {
   Package, Search, Filter, AlertTriangle, Shield, Clock, Loader2,
-  RefreshCw, ChevronDown, X, MapPin, Calendar, Tag
+  RefreshCw, ChevronDown, X, MapPin, Calendar, Tag, ArrowLeftRight, ArrowRight
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from 'sonner'
 import type { WmsData, WmsPallet } from '@/lib/coldops/types'
-import { formatRM } from '@/lib/coldops/ui'
+import { formatRM, timeAgo } from '@/lib/coldops/ui'
 
 export function WmsView() {
   const [data, setData] = useState<WmsData | null>(null)
@@ -248,6 +249,9 @@ export function WmsView() {
           </CardContent>
         </Card>
       )}
+
+      {/* Move History */}
+      <WmsMoveHistory />
     </div>
   )
 }
@@ -317,5 +321,86 @@ function PalletRow({ pallet, index }: { pallet: WmsPallet; index: number }) {
         ))}
       </div>
     </div>
+  )
+}
+
+// ============================================================================
+// WMS MOVE HISTORY SECTION
+// ============================================================================
+
+export function WmsMoveHistory() {
+  const [moves, setMoves] = useState<any[]>([])
+  const [stats, setStats] = useState({ total: 0, uniqueProducts: 0, uniqueRooms: 0 })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/wms/moves?limit=50')
+      .then(r => r.json())
+      .then(d => {
+        setMoves(d.moves || [])
+        setStats(d.stats || { total: 0, uniqueProducts: 0, uniqueRooms: 0 })
+      })
+      .catch(e => console.error('moves fetch failed', e))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ArrowLeftRight className="h-4 w-4 text-primary" />
+              Pallet Move History
+            </CardTitle>
+            <CardDescription className="text-xs">
+              {stats.total} confirmed moves · {stats.uniqueProducts} products · {stats.uniqueRooms} rooms
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="grid place-items-center h-[150px]">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : moves.length === 0 ? (
+          <div className="text-center py-8">
+            <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+            <div className="text-sm text-muted-foreground">No pallet moves recorded yet.</div>
+            <div className="text-xs text-muted-foreground mt-1">Complete a consolidation work order to see move history here.</div>
+          </div>
+        ) : (
+          <ScrollArea className="h-[300px] pr-2">
+            <div className="space-y-1.5">
+              {moves.map((m, i) => (
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                  className="flex items-center gap-2 text-xs rounded-md border border-border/60 p-2 hover:bg-muted/30 transition-colors"
+                >
+                  <span className="grid place-items-center h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">{m.sequence}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{m.productName}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">{m.lotNo}</div>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] font-mono">
+                    <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700">{m.fromRoomCode}:{m.fromBayCode}</span>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">{m.toRoomCode}:{m.toBayCode}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground text-right">
+                    <div>{m.confirmedAt ? timeAgo(m.confirmedAt) : '—'}</div>
+                    <div className="font-mono">{m.workOrderId?.slice(-8) || ''}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </CardContent>
+    </Card>
   )
 }
