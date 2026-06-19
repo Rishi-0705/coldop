@@ -1,17 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Map as MapIcon, ArrowRight, ArrowLeftRight, ClipboardList, Loader2
+  Map as MapIcon, ArrowRight, ArrowLeftRight, ClipboardList, Loader2,
+  Package, Clock, AlertTriangle, Shield, X, ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
+} from '@/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import type { RoomWithBms, ConsolidationPlan } from '@/lib/coldops/types'
-import { roomStatusColor, formatRM, formatKW, formatTemp } from '@/lib/coldops/ui'
+import { Progress } from '@/components/ui/progress'
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, ReferenceLine
+} from 'recharts'
+import type { RoomWithBms, ConsolidationPlan, RoomDetail } from '@/lib/coldops/types'
+import { roomStatusColor, formatRM, formatKW, formatTemp, timeAgo } from '@/lib/coldops/ui'
 import { Legend, Metric } from './shared'
 
 // ============================================================================
@@ -21,6 +29,7 @@ import { Legend, Metric } from './shared'
 export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms[]; plan: ConsolidationPlan | null; onExecutePlan: () => void }) {
   const [selected, setSelected] = useState<string | null>(null)
   const [executing, setExecuting] = useState(false)
+  const [detailRoom, setDetailRoom] = useState<string | null>(null)
   const selectedRoom = rooms.find(r => r.id === selected)
 
   const executePlan = async () => {
@@ -69,7 +78,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
         {/* Side panel */}
         <div className="space-y-4">
           {selectedRoom ? (
-            <RoomDetailCard room={selectedRoom} />
+            <RoomDetailCard room={selectedRoom} onViewDetail={() => setDetailRoom(selectedRoom.code)} />
           ) : (
             <Card className="border-border/60">
               <CardContent className="p-6 text-center">
@@ -156,6 +165,9 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
           )}
         </div>
       </div>
+
+      {/* Room Detail Modal */}
+      <RoomDetailModal roomCode={detailRoom} onClose={() => setDetailRoom(null)} />
     </div>
   )
 }
@@ -266,7 +278,7 @@ function FloorPlan({ rooms, selected, onSelect, plan }: { rooms: RoomWithBms[]; 
   )
 }
 
-function RoomDetailCard({ room }: { room: RoomWithBms }) {
+function RoomDetailCard({ room, onViewDetail }: { room: RoomWithBms; onViewDetail: () => void }) {
   const c = roomStatusColor(room.status)
   const tempOk = room.bms && room.bms.currentTemp >= room.minSafeTemp && room.bms.currentTemp <= room.maxSafeTemp
   return (
@@ -280,6 +292,9 @@ function RoomDetailCard({ room }: { room: RoomWithBms }) {
             </CardTitle>
             <CardDescription className="text-xs">{room.name} · {room.zone}</CardDescription>
           </div>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onViewDetail}>
+            Detail <ChevronRight className="h-3 w-3 ml-0.5" />
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -296,10 +311,156 @@ function RoomDetailCard({ room }: { room: RoomWithBms }) {
           <div className="text-sm text-muted-foreground py-4 text-center">BMS offline for this room</div>
         )}
         <Separator />
-        <div className="text-[11px] text-muted-foreground">
-          Safe range: <span className="font-mono">{room.minSafeTemp.toFixed(1)}°C — {room.maxSafeTemp.toFixed(1)}°C</span>
+        <div className="flex items-center justify-between">
+          <div className="text-[11px] text-muted-foreground">
+            Safe range: <span className="font-mono">{room.minSafeTemp.toFixed(1)}°C — {room.maxSafeTemp.toFixed(1)}°C</span>
+          </div>
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onViewDetail}>
+            <Package className="h-3 w-3 mr-1" /> View Pallets
+          </Button>
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+// ============================================================================
+// ROOM DETAIL MODAL — full pallet inventory + temp history + BMS controls
+// ============================================================================
+
+function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClose: () => void }) {
+  const [detail, setDetail] = useState<RoomDetail | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!roomCode) {
+      setDetail(null)
+      return
+    }
+    setLoading(true)
+    fetch(`/api/rooms/${roomCode}/detail`)
+      .then(r => r.json())
+      .then(d => setDetail(d))
+      .catch(e => console.error('room detail fetch failed', e))
+      .finally(() => setLoading(false))
+  }, [roomCode])
+
+  return (
+    <Dialog open={!!roomCode} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {detail ? `${detail.room.code} — ${detail.room.name}` : 'Loading...'}
+            {detail?.stats.isGhostLoad && (
+              <Badge variant="outline" className="text-[10px] text-red-700 border-red-300 bg-red-50">Ghost Load Active</Badge>
+            )}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {detail ? `${detail.room.zone} zone · Target ${detail.room.targetTemp}°C · Capacity ${detail.room.capacityPallets} pallets` : 'Fetching room details...'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading || !detail ? (
+          <div className="grid place-items-center h-[300px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <ScrollArea className="flex-1 pr-2">
+            <div className="space-y-4">
+              {/* BMS + Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {detail.bms && (
+                  <>
+                    <Metric label="Current temp" value={formatTemp(detail.bms.currentTemp)} ok={detail.bms.currentTemp >= detail.room.minSafeTemp && detail.bms.currentTemp <= detail.room.maxSafeTemp} />
+                    <Metric label="Setpoint" value={formatTemp(detail.bms.setpoint)} />
+                    <Metric label="Power" value={formatKW(detail.bms.powerKW)} />
+                    <Metric label="Load" value={`${Math.round(detail.bms.compressorLoad * 100)}%`} />
+                  </>
+                )}
+              </div>
+
+              {/* Temp history chart */}
+              {detail.recentReadings.length > 0 && (
+                <div>
+                  <div className="text-xs font-medium mb-1.5 flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    Power History (last 6h)
+                  </div>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <AreaChart data={detail.recentReadings.reverse().map(r => ({
+                      t: new Date(r.timestamp).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' }),
+                      kw: r.powerKW,
+                      ghost: r.isGhostLoad,
+                    }))}>
+                      <defs>
+                        <linearGradient id="modalKwGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                      <XAxis dataKey="t" tick={{ fontSize: 9 }} stroke="#9ca3af" interval={4} />
+                      <YAxis tick={{ fontSize: 9 }} stroke="#9ca3af" unit=" kW" />
+                      <RTooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                      <Area type="monotone" dataKey="kw" stroke="#ef4444" strokeWidth={1.5} fill="url(#modalKwGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              <Separator />
+
+              {/* Pallet inventory */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-medium flex items-center gap-1.5">
+                    <Package className="h-3.5 w-3.5 text-primary" />
+                    Pallet Inventory — FEFO Sorted
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">{detail.pallets.length} pallets · {detail.stats.utilizationPct}% full</Badge>
+                </div>
+                {detail.pallets.length === 0 ? (
+                  <div className="text-xs text-muted-foreground py-4 text-center">No pallets in this room.</div>
+                ) : (
+                  <div className="space-y-1 max-h-[280px] overflow-y-auto">
+                    {detail.pallets.map((p, i) => {
+                      const days = Math.ceil((new Date(p.expiryDate).getTime() - Date.now()) / 86400000)
+                      const isCritical = days <= 3
+                      const isExpiringSoon = days <= 7
+                      const allergens = (p.allergenTags || '').split(',').filter(Boolean)
+                      return (
+                        <div key={p.id} className={`flex items-center gap-2 text-xs rounded-md border p-2 ${isCritical ? 'border-red-200 bg-red-50/50' : isExpiringSoon ? 'border-amber-200 bg-amber-50/30' : 'border-border/60'}`}>
+                          <span className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold ${i < 3 ? 'bg-red-100 text-red-700' : 'bg-muted text-muted-foreground'}`}>{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{p.productName}</div>
+                            <div className="text-[10px] text-muted-foreground font-mono">{p.lotNo} · Bay {p.bayCode}</div>
+                          </div>
+                          {p.quarantine && <Shield className="h-3.5 w-3.5 text-red-500" />}
+                          {allergens.map(a => (
+                            <span key={a} className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700">{a.slice(0, 3)}</span>
+                          ))}
+                          <Badge variant={isCritical ? 'destructive' : isExpiringSoon ? 'secondary' : 'outline'} className="text-[10px]">
+                            {days}d
+                          </Badge>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Stats footer */}
+              <Separator />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div><span className="text-muted-foreground">Allergens:</span> <span className="font-medium">{detail.stats.allergensPresent.join(', ') || 'None'}</span></div>
+                <div><span className="text-muted-foreground">Earliest expiry:</span> <span className="font-medium">{detail.stats.earliestExpiry ? new Date(detail.stats.earliestExpiry).toLocaleDateString('en-MY', { day: '2-digit', month: 'short' }) : '—'}</span></div>
+                <div><span className="text-muted-foreground">Idle baseline:</span> <span className="font-mono">{formatKW(detail.stats.idleBaselineKW)}</span></div>
+                <div><span className="text-muted-foreground">Ghost load:</span> <span className={`font-medium ${detail.stats.isGhostLoad ? 'text-red-600' : 'text-emerald-600'}`}>{detail.stats.isGhostLoad ? 'Yes' : 'No'}</span></div>
+              </div>
+            </div>
+          </ScrollArea>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

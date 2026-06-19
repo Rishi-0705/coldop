@@ -4,7 +4,7 @@
 
 export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 export type RoomStatus = 'GHOST_LOAD' | 'CONSOLIDATION' | 'OPTIMIZED' | 'ACTIVE' | 'IDLE'
-export type ViewKey = 'command' | 'map' | 'workorders' | 'notifications' | 'analytics' | 'schedule'
+export type ViewKey = 'command' | 'map' | 'workorders' | 'notifications' | 'analytics' | 'schedule' | 'wms' | 'settings'
 
 export interface Savings {
   tonightRM: number
@@ -307,4 +307,118 @@ export interface ProductionScheduleData {
   lines: any[]
   ghostWindows: GhostWindow[]
   now: string
+}
+
+// ===== WMS Stock Browser types =====
+
+export interface WmsPallet {
+  id: string
+  lotNo: string
+  productCode: string
+  productName: string
+  roomCode: string
+  roomName: string
+  bayCode: string
+  quantity: number
+  expiryDate: string
+  receivedAt: string
+  allergenTags: string
+  quarantine: boolean
+  daysToExpiry: number
+  fefoRank: number
+  category: string
+}
+
+export interface WmsStats {
+  total: number
+  byCategory: Record<string, number>
+  byRoom: Record<string, number>
+  expiringSoon: number
+  quarantineCount: number
+  allergenBreakdown: Record<string, number>
+}
+
+export interface WmsFilters {
+  rooms: { code: string; name: string; count: number }[]
+  categories: string[]
+  allergens: string[]
+}
+
+export interface WmsData {
+  pallets: WmsPallet[]
+  stats: WmsStats
+  filters: WmsFilters
+}
+
+// ===== Settings types =====
+
+export interface AppConfig {
+  id: number
+  tnbTariffRM: number
+  idleThresholdPct: number
+  minIdleDurationHours: number
+  consolidationThresholdPct: number
+  laborCostPerMinuteRM: number
+  co2PerKgRM: number
+  rampStepSeconds: number
+}
+
+export interface BmsInfo {
+  adapter: string
+  vendor: string
+  online: boolean
+  roomsConnected: number
+}
+
+export interface Role {
+  role: string
+  description: string
+  permissions: string[]
+}
+
+export interface SettingsData {
+  config: AppConfig
+  bms: BmsInfo
+  roles: Role[]
+}
+
+// ===== Room Detail types =====
+
+export interface RoomDetail {
+  room: {
+    id: string
+    code: string
+    name: string
+    zone: string
+    targetTemp: number
+    minSafeTemp: number
+    maxSafeTemp: number
+    maxPowerKW: number
+    capacityPallets: number
+    floorX: number
+    floorY: number
+    floorW: number
+    floorH: number
+  }
+  bms: {
+    currentTemp: number
+    setpoint: number
+    compressorLoad: number
+    powerKW: number
+    doorOpen: boolean
+    status: string
+  } | null
+  pallets: WmsPallet[]
+  recentReadings: { timestamp: string; powerKW: number; isGhostLoad: boolean; isProductionActive: boolean }[]
+  stats: {
+    utilizationPct: number
+    palletCount: number
+    capacityPallets: number
+    currentPowerKW: number
+    idleBaselineKW: number
+    isGhostLoad: boolean
+    allergensPresent: string[]
+    earliestExpiry: string | null
+    latestExpiry: string | null
+  }
 }

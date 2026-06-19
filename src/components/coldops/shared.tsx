@@ -3,7 +3,7 @@
 import {
   Activity, Map as MapIcon, ClipboardList, Bell, Snowflake, TrendingDown,
   Server, Radio, RefreshCw, ArrowRight, ThermometerSun, Loader2,
-  Smartphone, Mail, MessageSquare, BarChart3, Calendar
+  Smartphone, Mail, MessageSquare, BarChart3, Calendar, Package, Settings
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,8 +37,10 @@ export function TopBar({
     { key: 'map', label: 'Cold Room Map', icon: MapIcon },
     { key: 'workorders', label: 'Work Orders', icon: ClipboardList },
     { key: 'notifications', label: 'Notifications', icon: Bell },
+    { key: 'wms', label: 'WMS Stock', icon: Package },
     { key: 'analytics', label: 'Analytics', icon: BarChart3 },
     { key: 'schedule', label: 'Schedule', icon: Calendar },
+    { key: 'settings', label: 'Settings', icon: Settings },
   ]
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">

@@ -15,6 +15,8 @@ import { WorkOrdersView } from '@/components/coldops/work-orders'
 import { NotificationsView } from '@/components/coldops/notifications'
 import { AnalyticsView } from '@/components/coldops/analytics'
 import { ScheduleView } from '@/components/coldops/schedule'
+import { WmsView } from '@/components/coldops/wms'
+import { SettingsView } from '@/components/coldops/settings'
 import type { ViewKey } from '@/lib/coldops/types'
 
 // ============================================================================
@@ -179,8 +181,12 @@ export default function ColdOpsPage() {
           <NotificationsView notifs={notifs} counts={notifCounts} onAction={fetchAll} />
         ) : view === 'analytics' ? (
           <AnalyticsView analytics={analytics} meterData={meterData} setbackHistory={setbackHistory} onRefresh={fetchAnalytics} />
-        ) : (
+        ) : view === 'schedule' ? (
           <ScheduleView schedule={schedule} onRefresh={fetchSchedule} />
+        ) : view === 'wms' ? (
+          <WmsView />
+        ) : (
+          <SettingsView />
         )}
       </main>
       <Footer />
