@@ -53,7 +53,22 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Explainer Banner */}
+      <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-4">
+        <div className="grid place-items-center h-10 w-10 rounded-full bg-primary/20 text-primary flex-shrink-0 mt-0.5">
+          <Package className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-primary tracking-tight">Solution 2: Cold Room Utilization Optimizer</h2>
+          <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
+            This module analyzes stock levels across all cold rooms. When rooms are underutilized (e.g., &lt;25% capacity), 
+            it generates FEFO-sequenced consolidation plans to merge pallets into a single room. 
+            Once executed via Work Orders, the empty rooms can be completely shut down to save massive amounts of energy.
+          </p>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -61,9 +76,6 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
             Factory Floor — Cold Room Map
           </h2>
           <p className="text-sm text-muted-foreground">Marigold PJ · 8 rooms · real-time BMS telemetry</p>
-          <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
-            Renders the factory floor as an <b>SVG-positioned grid of rooms</b>, each tile color-coded by its current ColdOps status (ghost load = red, consolidation candidate = amber, optimized = blue, active production = sky, idle = zinc). Clicking a room opens its live <b>BMS telemetry</b> (temp, compressor kW, setpoint) and WMS pallet inventory side-by-side — so the supervisor can see in one glance why a room is wasting energy and what is physically inside it.
-          </p>
         </div>
         <Legend />
       </div>

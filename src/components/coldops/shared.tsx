@@ -34,11 +34,10 @@ export function Sidebar({
   const totalOpen = Object.values(notifCounts).reduce((a, b) => a + b, 0)
 
   const nav: { key: ViewKey; label: string; description: string; icon: any; flagship?: string }[] = [
-    { key: 'command', label: 'Command Center', description: 'Ghost load detection & live KPIs', icon: Activity, flagship: 'Main Detection' },
-    { key: 'camera', label: 'Camera Scan', description: 'Real webcam + AI product detection', icon: Camera },
-    { key: 'map', label: 'Cold Room Map', description: 'Consolidation & floor plan', icon: MapIcon, flagship: 'Fill the Gap' },
-    { key: 'workorders', label: 'Work Orders', description: 'Execution & approvals', icon: ClipboardList },
-    { key: 'logs', label: 'Detection Logs', description: 'Audit trail & scenario results', icon: ScrollText },
+    { key: 'command', label: 'Dashboard', description: 'Ghost Load Detection', icon: Activity, flagship: '1. Detect Waste' },
+    { key: 'map', label: 'Cold Room Map', description: 'Utilization Optimizer', icon: MapIcon, flagship: '2. Consolidate Space' },
+    { key: 'workorders', label: 'Action Center', description: 'Work Orders & Approvals', icon: ClipboardList },
+    { key: 'ingestion', label: 'Live Data Ingestion', description: 'Camera & WMS Uploads', icon: Zap },
   ]
 
   return (
@@ -100,12 +99,11 @@ export function Sidebar({
         })}
       </nav>
 
-      {/* 3 Flagship highlights */}
+      {/* 2 Core Solutions highlights */}
       <div className="p-3 border-t border-border/60 space-y-1.5">
-        <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide px-1">3 Flagship Features</div>
-        <FlagshipBadge icon={Zap} label="Main Detection" description="Cross-references smart meter data with production schedules to detect compressors running at full power during non-production hours. Uses deterministic rules (not ML) for full explainability — every alert tells you exactly why it fired. This is the core of ColdOps: making invisible energy waste visible and quantifiable in Ringgit." />
-        <FlagshipBadge icon={Package} label="Fill the Gap" description="Identifies underutilized cold rooms (below 25% capacity) and generates FEFO-sequenced consolidation plans with allergen segregation checks. Calculates net benefit (energy saving minus labor cost) before dispatching work orders to warehouse staff. Solves the 'scattered stock' problem where multiple half-empty rooms waste energy." />
-        <FlagshipBadge icon={ThermometerSun} label="Progressive Setback" description="Ramps temperature gradually (4°C to 8°C in 4 steps) via real HTTP BMS API commands with readback confirmations at each step. Safety guardrails monitor temperature every 1.5 seconds and auto-abort if readings leave the safe range. Protects equipment longevity while reducing compressor load by 40%." />
+        <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide px-1">Core Engine Overview</div>
+        <FlagshipBadge icon={Zap} label="1. Ghost Load Engine" description="Cross-references real-time smart meter power draw with live production schedules. If a compressor runs at full power when no production is happening, it alerts the team and triggers an automated Progressive Setback (ramping temp safely) to eliminate waste." />
+        <FlagshipBadge icon={Package} label="2. Utilization Optimizer" description="Scans WMS for underutilized cold rooms (<25% capacity). Generates smart consolidation routes (moving pallets to other rooms) so empty rooms can be shut down entirely, drastically reducing energy consumption." />
       </div>
 
       {/* Status indicators */}
@@ -125,18 +123,7 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Settings gear */}
-      <div className="p-2 border-t border-border/60">
-        <Button
-          variant={view === 'settings' ? 'default' : 'ghost'}
-          size="sm"
-          className="w-full justify-start gap-2 h-9"
-          onClick={() => onView('settings')}
-        >
-          <SettingsIcon className="h-4 w-4" />
-          <span className="text-sm">Settings</span>
-        </Button>
-      </div>
+      {/* Settings removed to focus on core features */}
     </aside>
   )
 }

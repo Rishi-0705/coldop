@@ -146,10 +146,12 @@ export function NotificationsView({ notifs, counts, onAction }: { notifs: Notifi
                               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); act(n.id, 'defer') }} disabled={acting === n.id}>
                                 Defer
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={(e) => { e.stopPropagation(); act(n.id, 'dismiss') }} disabled={acting === n.id}>
-                                <X className="h-3 w-3" />
-                              </Button>
                             </>
+                          )}
+                          {isOpen && (
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={(e) => { e.stopPropagation(); act(n.id, 'dismiss') }} disabled={acting === n.id}>
+                              <X className="h-3 w-3" />
+                            </Button>
                           )}
                           <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
                         </div>
@@ -238,15 +240,19 @@ function NotificationDetailModal({ notifId, onClose, onAction, acting }: { notif
               </div>
 
               {/* Action buttons */}
-              {notif.status === 'OPEN' && notif.actionType && notif.actionType !== 'NONE' && (
+              {notif.status === 'OPEN' && (
                 <div className="flex items-center gap-2">
-                  <Button className="bg-blue-600 hover:bg-blue-700 flex-1" onClick={() => onAction(notif.id, 'approve')} disabled={acting === notif.id}>
-                    {acting === notif.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                    Approve & Execute
-                  </Button>
-                  <Button variant="outline" onClick={() => onAction(notif.id, 'defer')} disabled={acting === notif.id}>
-                    Defer
-                  </Button>
+                  {notif.actionType && notif.actionType !== 'NONE' && (
+                    <>
+                      <Button className="bg-blue-600 hover:bg-blue-700 flex-1" onClick={() => onAction(notif.id, 'approve')} disabled={acting === notif.id}>
+                        {acting === notif.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                        Approve & Execute
+                      </Button>
+                      <Button variant="outline" onClick={() => onAction(notif.id, 'defer')} disabled={acting === notif.id}>
+                        Defer
+                      </Button>
+                    </>
+                  )}
                   <Button variant="ghost" onClick={() => onAction(notif.id, 'dismiss')} disabled={acting === notif.id}>
                     Dismiss
                   </Button>

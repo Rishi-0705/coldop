@@ -22,8 +22,10 @@ import { SettingsView } from '@/components/coldops/settings'
 import { ViewTransition } from '@/components/coldops/motion'
 import { QuickActions } from '@/components/coldops/quick-actions'
 import { DemoTour } from '@/components/coldops/demo-tour'
+import { DataIngestionView } from '@/components/coldops/data-ingestion'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { BarChart3, Calendar, Package, Bell, ScrollText } from 'lucide-react'
+import { BarChart3, Calendar, Package, Bell, ScrollText, Zap } from 'lucide-react'
 
 export default function ColdOpsPage() {
   const [view, setView] = useState<ViewKey>('command')
@@ -158,9 +160,9 @@ export default function ColdOpsPage() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      const views: ViewKey[] = ['command', 'camera', 'map', 'workorders', 'logs', 'settings']
+      const views: ViewKey[] = ['command', 'map', 'workorders']
       const num = parseInt(e.key)
-      if (num >= 1 && num <= 6) {
+      if (num >= 1 && num <= 3) {
         setView(views[num - 1])
       }
     }
@@ -188,31 +190,10 @@ export default function ColdOpsPage() {
               {view === 'command' ? (
                 <div className="space-y-6">
                   <CommandCenter dashboard={dashboard} rooms={rooms} activeSetbacks={activeSetbacks} meterData={meterData} onNeedMeter={fetchMeter} />
-                  {/* Analytics + Schedule as tabs within Command Center */}
-                  <Tabs defaultValue="analytics" className="w-full">
-                    <TabsList>
-                      <TabsTrigger value="analytics" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
-                      <TabsTrigger value="schedule" className="text-xs gap-1.5"><Calendar className="h-3.5 w-3.5" /> Schedule</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="analytics">
-                      <AnalyticsView analytics={analytics} meterData={meterData} setbackHistory={setbackHistory} onRefresh={fetchAnalytics} />
-                    </TabsContent>
-                    <TabsContent value="schedule">
-                      <ScheduleView schedule={schedule} onRefresh={fetchSchedule} />
-                    </TabsContent>
-                  </Tabs>
                 </div>
-              ) : view === 'camera' ? (
-                <CameraScan />
               ) : view === 'map' ? (
                 <div className="space-y-6">
                   <ColdRoomMap rooms={rooms} plan={plan} onExecutePlan={fetchAll} />
-                  <div className="flex items-center gap-2 mb-2">
-                    <Package className="h-4 w-4 text-primary" />
-                    <h3 className="text-base font-semibold">WMS Stock Browser</h3>
-                    <span className="text-xs text-muted-foreground">— search, filter, and manage pallet inventory</span>
-                  </div>
-                  <WmsView />
                 </div>
               ) : view === 'workorders' ? (
                 <div className="space-y-6">
@@ -224,16 +205,15 @@ export default function ColdOpsPage() {
                   </div>
                   <NotificationsView notifs={notifs} counts={notifCounts} onAction={fetchAll} />
                 </div>
-              ) : view === 'logs' ? (
-                <LogsView />
-              ) : (
-                <SettingsView />
-              )}
+              ) : view === 'ingestion' ? (
+                <div className="space-y-6 max-w-4xl mx-auto">
+                  <DataIngestionView rooms={rooms} onAction={fetchAll} />
+                </div>
+              ) : null}
             </ViewTransition>
           )}
         </main>
-        <QuickActions notifs={notifs} onAction={fetchAll} />
-        <DemoTour onViewChange={(v) => setView(v as ViewKey)} />
+
         <Footer />
       </div>
     </div>

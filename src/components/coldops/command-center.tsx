@@ -35,6 +35,21 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
 
   return (
     <div className="space-y-6">
+      {/* Explainer Banner */}
+      <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-4">
+        <div className="grid place-items-center h-10 w-10 rounded-full bg-primary/20 text-primary flex-shrink-0 mt-0.5">
+          <Zap className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-primary tracking-tight">Solution 1: Ghost Load Detection Engine</h2>
+          <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
+            This dashboard continuously cross-references real-time smart meter power draw with live factory production schedules. 
+            When a compressor runs at full power during non-production hours (Ghost Load), the engine detects it, calculates the Ringgit waste, 
+            and allows you to trigger an automated Progressive Setback to eliminate it safely.
+          </p>
+        </div>
+      </div>
+
       {/* Hero KPI strip */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <KpiCard
@@ -212,15 +227,15 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
         </Card>
       </div>
 
-      {/* Top notifications + Live Activity Feed */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* Top notifications */}
+      <div className="grid gap-4">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Bell className="h-4 w-4 text-primary" />
-              Priority Alerts
+              Priority Alerts (Ghost Load Interventions)
             </CardTitle>
-            <CardDescription className="text-xs">Severity-sorted · top 5 open</CardDescription>
+            <CardDescription className="text-xs">Approve these alerts to trigger automated progressive setbacks.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -254,15 +269,7 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
           </CardContent>
         </Card>
 
-        {/* Live Activity Feed */}
-        <ActivityFeed />
       </div>
-
-      {/* Energy Cost Forecast */}
-      <EnergyForecastWidget />
-
-      {/* ESG / Sustainability Dashboard */}
-      <EsgDashboard />
     </div>
   )
 }
