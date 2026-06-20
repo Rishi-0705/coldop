@@ -587,3 +587,73 @@ export interface ActivityData {
     totalRmImpact: number
   }
 }
+
+// ===== Room Comparison types =====
+
+export interface RoomComparisonRoom {
+  code: string
+  name: string
+  zone: string
+  color: string
+  metrics: {
+    tempCompliance: number
+    compressorLoad: number
+    utilization: number
+    ghostHours: number
+    rmWaste: number
+  }
+  raw: {
+    currentTemp: number
+    targetTemp: number
+    powerKW: number
+    maxPowerKW: number
+    palletCount: number
+    capacityPallets: number
+    ghostHours: number
+    rmWaste: number
+    isGhost: boolean
+  }
+}
+
+export interface RoomComparisonData {
+  rooms: RoomComparisonRoom[]
+  axes: { key: string; label: string; fullLabel: string }[]
+}
+
+// ===== BMS Adapter types =====
+
+export interface BmsAdapter {
+  id: string
+  name: string
+  protocol: string
+  vendor: string
+  model: string
+  status: 'CONNECTED' | 'SIMULATED' | 'AVAILABLE' | 'OFFLINE'
+  roomsManaged: number
+  lastSync: string | null
+  latency: number
+  endpoint: string
+  capabilities: string[]
+  color: string
+  note?: string
+}
+
+export interface ProtocolSupport {
+  protocol: string
+  library: string
+  vendors: string[]
+  maturity: string
+}
+
+export interface BmsAdapterData {
+  adapters: BmsAdapter[]
+  stats: {
+    total: number
+    connected: number
+    simulated: number
+    available: number
+    totalRoomsManaged: number
+    avgLatency: number
+  }
+  protocolSupport: ProtocolSupport[]
+}

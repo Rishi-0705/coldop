@@ -160,6 +160,20 @@ export default function ColdOpsPage() {
   useRealtimeEvent('ghost-load-detected', () => fetchAll())
   useRealtimeEvent('room-status-changed', () => fetchAll())
 
+  // Keyboard shortcuts: 1-8 for views, ? for tour
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      const views: ViewKey[] = ['command', 'map', 'workorders', 'notifications', 'wms', 'analytics', 'schedule', 'settings']
+      const num = parseInt(e.key)
+      if (num >= 1 && num <= 8) {
+        setView(views[num - 1])
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <TopBar

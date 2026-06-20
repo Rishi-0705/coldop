@@ -16,6 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import type { SettingsData, AppConfig } from '@/lib/coldops/types'
 import { formatRM, timeAgo } from '@/lib/coldops/ui'
+import { BmsAdapterPanel } from './bms-adapters'
 
 export function SettingsView() {
   const [data, setData] = useState<SettingsData | null>(null)
@@ -284,6 +285,9 @@ export function SettingsView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* BMS Protocol Adapters */}
+      <BmsAdapterPanel />
 
       {/* Notification Dispatch Log */}
       <DispatchLogPanel />

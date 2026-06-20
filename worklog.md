@@ -499,3 +499,42 @@ Stage Summary:
 ## Unresolved Issues / Next Steps
 - No known bugs — platform is stable and feature-rich
 - Potential next features: room comparison radar chart, PDF report generation, multi-factory dashboard, BACnet/Modbus adapter stubs, mobile companion app
+
+---
+Task ID: 12 (Radar Chart + BMS Adapters + Keyboard Shortcuts)
+Agent: orchestrator (main)
+Task: Add room comparison radar chart, BMS protocol adapter panel, keyboard shortcuts.
+
+Work Log:
+- Added 2 new API routes:
+  • /api/room-comparison — radar chart data comparing all 8 rooms across 5 dimensions (temp compliance, compressor load, utilization, ghost hours, RM waste), normalized 0-100 with raw values
+  • /api/bms-adapters — mock BMS adapter info showing 4 protocols (REST connected, BACnet/IP simulated, Modbus TCP simulated, MQTT available) with capabilities, latency, endpoint, protocol support matrix
+- Added RoomComparisonRadar component to Analytics: interactive Recharts RadarChart with 5 axes, toggleable room chips with color dots + ghost indicators, per-room detail table with 5 metric cells (color-coded by good/bad), legend
+- Created BmsAdapterPanel component (bms-adapters.tsx): 4 adapter cards (REST/BACnet/Modbus/MQTT) with status icons, protocol color, rooms managed, latency, endpoint, capabilities tags, last sync time, notes; protocol support matrix table showing library + vendors + maturity (Production/Adapter Ready/Available)
+- Added BmsAdapterPanel to Settings view (between BMS Integration + Dispatch Log)
+- Added keyboard shortcuts to main page: keys 1-8 navigate to the 8 views (1=Command Center, 2=Cold Room Map, 3=Work Orders, 4=Notifications, 5=WMS, 6=Analytics, 7=Schedule, 8=Settings), ignores when typing in inputs
+- Fixed JSX syntax bug in bms-adapters.tsx (missing closing paren on adapter.note conditional)
+- Browser verification:
+  • Radar chart: 4 of 8 rooms shown, 5 dimensions (Temp Compliance, Compressor Load, Utilization, Ghost Hours, RM Waste), toggleable chips working
+  • BMS Adapters: 4 adapters · 1 connected · 2 simulated · 1 available · avg 45ms latency, all adapter cards + protocol matrix rendering
+  • Keyboard shortcuts: key "1" → Command Center, key "6" → Analytics — both verified working
+  • No console errors, lint clean
+
+Stage Summary:
+- ✅ Room Comparison Radar Chart (5-dimension, interactive toggle)
+- ✅ BMS Protocol Adapter Panel (4 protocols, production-ready matrix)
+- ✅ Keyboard shortcuts (1-8 for views)
+- ✅ Both new APIs tested and verified
+- ✅ Lint clean, no console errors
+
+## Current Project Status
+- 8 views: Command Center, Cold Room Map, Work Orders, Notifications, WMS Stock, Analytics, Schedule, Settings
+- 3 mini-services: Next.js (:3000), BMS simulator (:3004), Realtime hub (:3003)
+- 22 API routes (including new /api/room-comparison + /api/bms-adapters)
+- 16 component files in src/components/coldops/ (including new bms-adapters.tsx)
+- All modules from original brief implemented + radar chart + BMS adapter abstraction + keyboard shortcuts + ESG dashboard + animated gauges + demo tour + activity feed
+- Real-time Socket.io updates, framer-motion transitions, Quick Actions panel, circular gauges, CSV export, multi-zone charts
+
+## Unresolved Issues / Next Steps
+- No known bugs — platform is stable and feature-rich
+- Potential next features: PDF report generation, multi-factory dashboard, savings milestone celebrations, mobile companion app

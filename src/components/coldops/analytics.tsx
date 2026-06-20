@@ -14,9 +14,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, Cell,
-  LineChart, Line, Legend
+  LineChart, Line, Legend,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts'
-import type { AnalyticsData, MeterData, SetbackHistoryItem, MultiZoneData } from '@/lib/coldops/types'
+import type { AnalyticsData, MeterData, SetbackHistoryItem, MultiZoneData, RoomComparisonData } from '@/lib/coldops/types'
 import { formatRM, timeAgo } from '@/lib/coldops/ui'
 import { RoiCard } from './shared'
 
@@ -120,6 +121,9 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
 
       {/* Multi-zone 24h comparison */}
       <MultiZoneComparison />
+
+      {/* Room Comparison Radar Chart */}
+      <RoomComparisonRadar />
 
       {/* Top ghost load rooms + Setback history */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -435,5 +439,166 @@ function MultiZoneComparison() {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+// ============================================================================
+// ROOM COMPARISON RADAR CHART
+// ============================================================================
+
+function RoomComparisonRadar() {
+  const [data, setData] = useState<RoomComparisonData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [visibleRooms, setVisibleRooms] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    fetch('/api/room-comparison')
+      .then(r => r.json())
+      .then(d => {
+        setData(d)
+        // Show first 4 rooms by default
+        setVisibleRooms(new Set(d.rooms.slice(0, 4).map((r: any) => r.code)))
+      })
+      .catch(e => console.error('room comparison fetch failed', e))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading || !data) {
+    return (
+      <Card className="border-border/60">
+        <CardContent className="p-6 grid place-items-center h-[300px]">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Transform for Recharts radar: [{ axis: 'Temp Compliance', 'CR-01': 96, 'CR-02': 99, ... }]
+  const chartData = data.axes.map(axis => {
+    const row: any = { axis: axis.label }
+    for (const room of data.rooms) {
+      if (visibleRooms.has(room.code)) {
+        row[room.code] = room.metrics[axis.key as keyof typeof room.metrics]
+      }
+    }
+    return row
+  })
+
+  const toggleRoom = (code: string) => {
+    setVisibleRooms(prev => {
+      const next = new Set(prev)
+      if (next.has(code)) next.delete(code)
+      else next.add(code)
+      return next
+    })
+  }
+
+  const visibleRoomsData = data.rooms.filter(r => visibleRooms.has(r.code))
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between flex-wrap gap-2">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              Room Comparison Radar
+            </CardTitle>
+            <CardDescription className="text-xs">
+              5-dimension comparison: temp compliance, compressor load, utilization, ghost hours, RM waste · {visibleRooms.size} of {data.rooms.length} rooms shown
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Radar chart */}
+          <div>
+            <ResponsiveContainer width="100%" height={320}>
+              <RadarChart data={chartData} margin={{ top: 16, right: 16, left: 16, bottom: 16 }}>
+                <PolarGrid stroke="#e5e7eb" />
+                <PolarAngleAxis dataKey="axis" tick={{ fontSize: 10, fill: '#6b7280' }} />
+                <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 8, fill: '#9ca3af' }} />
+                <RTooltip
+                  contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                  formatter={(v: any, name: string) => [`${v}`, name]}
+                />
+                {visibleRoomsData.map(r => (
+                  <Radar
+                    key={r.code}
+                    name={r.code}
+                    dataKey={r.code}
+                    stroke={r.color}
+                    fill={r.color}
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                  />
+                ))}
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Room toggle + details */}
+          <div className="space-y-3">
+            {/* Toggle chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {data.rooms.map(r => (
+                <button
+                  key={r.code}
+                  onClick={() => toggleRoom(r.code)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
+                    visibleRooms.has(r.code)
+                      ? 'border-border/60 bg-card shadow-sm'
+                      : 'border-border/30 bg-muted/30 opacity-40'
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
+                  {r.code}
+                  {r.raw.isGhost && <span className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />}
+                </button>
+              ))}
+            </div>
+
+            {/* Selected rooms detail table */}
+            <div className="space-y-1.5 max-h-[260px] overflow-y-auto">
+              {visibleRoomsData.map(r => (
+                <div key={r.code} className="rounded-md border border-border/60 p-2 text-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                      <span className="font-medium">{r.code}</span>
+                      <span className="text-[10px] text-muted-foreground truncate">{r.name}</span>
+                      {r.raw.isGhost && <Badge variant="outline" className="text-[9px] text-red-700 border-red-300">GHOST</Badge>}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground font-mono">{r.raw.currentTemp}°C / {r.raw.powerKW}kW</span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1 text-[9px]">
+                    <MetricCell label="Temp" value={r.metrics.tempCompliance} invert={false} />
+                    <MetricCell label="Load" value={r.metrics.compressorLoad} invert={true} />
+                    <MetricCell label="Util" value={r.metrics.utilization} invert={false} />
+                    <MetricCell label="Ghost" value={r.metrics.ghostHours} invert={true} />
+                    <MetricCell label="RM" value={r.metrics.rmWaste} invert={true} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function MetricCell({ label, value, invert }: { label: string; value: number; invert: boolean }) {
+  // invert=true means lower is better (red high), invert=false means higher is better (green high)
+  const color = invert
+    ? value > 66 ? 'text-red-600' : value > 33 ? 'text-amber-600' : 'text-emerald-600'
+    : value > 66 ? 'text-emerald-600' : value > 33 ? 'text-amber-600' : 'text-red-600'
+  return (
+    <div className="text-center">
+      <div className="text-[8px] text-muted-foreground uppercase">{label}</div>
+      <div className={`font-bold ${color}`}>{value}</div>
+    </div>
   )
 }
