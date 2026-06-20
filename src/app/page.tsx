@@ -19,6 +19,7 @@ import { WmsView } from '@/components/coldops/wms'
 import { SettingsView } from '@/components/coldops/settings'
 import { ViewTransition } from '@/components/coldops/motion'
 import { QuickActions } from '@/components/coldops/quick-actions'
+import { DemoTour } from '@/components/coldops/demo-tour'
 import type { ViewKey } from '@/lib/coldops/types'
 
 // ============================================================================
@@ -196,6 +197,7 @@ export default function ColdOpsPage() {
         )}
       </main>
       <QuickActions notifs={notifs} onAction={fetchAll} />
+      <DemoTour onViewChange={(v) => setView(v as ViewKey)} />
       <Footer />
     </div>
   )

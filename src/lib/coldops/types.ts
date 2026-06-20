@@ -562,3 +562,28 @@ export interface EsgData {
   sdg: { id: number; name: string; color: string; contribution: string }[]
   tariff: number
 }
+
+// ===== Activity Feed types =====
+
+export interface ActivityEvent {
+  id: string
+  type: string
+  severity: string
+  title: string
+  description: string
+  roomId: string | null
+  roomCode: string | null
+  rmImpact: number
+  timestamp: string
+  icon: string
+}
+
+export interface ActivityData {
+  events: ActivityEvent[]
+  stats: {
+    total: number
+    last24h: number
+    byType: Record<string, number>
+    totalRmImpact: number
+  }
+}

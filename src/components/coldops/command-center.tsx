@@ -22,6 +22,7 @@ import {
 } from '@/lib/coldops/ui'
 import { KpiCard, ActiveSetbackCard } from './shared'
 import { EsgDashboard } from './esg'
+import { ActivityFeed } from './activity-feed'
 
 // ============================================================================
 // VIEW: COMMAND CENTER
@@ -207,46 +208,51 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
         </Card>
       </div>
 
-      {/* Top notifications */}
-      <Card className="border-border/60">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Bell className="h-4 w-4 text-primary" />
-            Priority Alerts
-          </CardTitle>
-          <CardDescription className="text-xs">Severity-sorted · top 5 open</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {topNotifications.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-6 text-center">No open alerts.</div>
-            ) : (
-              topNotifications.map(n => {
-                const c = severityColor(n.severity)
-                return (
-                  <div key={n.id} className={`flex items-start gap-3 rounded-lg border ${c.border} ${c.bg} p-3`}>
-                    <span className={`mt-1 h-2 w-2 rounded-full ${c.dot}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{n.title}</span>
-                        <Badge variant="outline" className={`text-[10px] ${c.text} border-current`}>{n.severity}</Badge>
-                        <Badge variant="outline" className="text-[10px]">{n.type.replace(/_/g, ' ')}</Badge>
+      {/* Top notifications + Live Activity Feed */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-border/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Bell className="h-4 w-4 text-primary" />
+              Priority Alerts
+            </CardTitle>
+            <CardDescription className="text-xs">Severity-sorted · top 5 open</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {topNotifications.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-6 text-center">No open alerts.</div>
+              ) : (
+                topNotifications.map(n => {
+                  const c = severityColor(n.severity)
+                  return (
+                    <div key={n.id} className={`flex items-start gap-3 rounded-lg border ${c.border} ${c.bg} p-3`}>
+                      <span className={`mt-1 h-2 w-2 rounded-full ${c.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm">{n.title}</span>
+                          <Badge variant="outline" className={`text-[10px] ${c.text} border-current`}>{n.severity}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{n.type.replace(/_/g, ' ')}</Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">{n.message}</div>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">{n.message}</div>
+                      {n.rmImpact > 0 && (
+                        <div className="text-right">
+                          <div className={`text-sm font-bold ${c.text}`}>{formatRM(n.rmImpact)}</div>
+                          <div className="text-[10px] text-muted-foreground">{timeAgo(n.createdAt)}</div>
+                        </div>
+                      )}
                     </div>
-                    {n.rmImpact > 0 && (
-                      <div className="text-right">
-                        <div className={`text-sm font-bold ${c.text}`}>{formatRM(n.rmImpact)}</div>
-                        <div className="text-[10px] text-muted-foreground">{timeAgo(n.createdAt)}</div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                  )
+                })
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Live Activity Feed */}
+        <ActivityFeed />
+      </div>
 
       {/* Energy Cost Forecast */}
       <EnergyForecastWidget />

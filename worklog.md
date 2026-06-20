@@ -450,3 +450,52 @@ Stage Summary:
 ## Unresolved Issues / Next Steps
 - No known bugs — platform is stable and feature-rich
 - Potential next features: guided demo tour wizard, PDF report generation, multi-factory dashboard, BACnet/Modbus adapter stubs, mobile companion app
+
+---
+Task ID: 11 (Demo Tour + Activity Feed + Layout Fix)
+Agent: orchestrator (main)
+Task: Add guided demo tour wizard, live activity feed, fix command-center JSX indentation bug.
+
+Work Log:
+- Added /api/activity API route: unified activity feed combining ghost load events, setback events, work orders, and notification actions — normalized to { id, type, severity, title, description, roomId, roomCode, rmImpact, timestamp, icon } with stats (total, last24h, byType, totalRmImpact)
+- Created ActivityFeed component (activity-feed.tsx): 
+  • Auto-refreshes every 10 seconds with LiveDot pulsing indicator
+  • Scrollable list of activity events with framer-motion layout animations (slide in/out)
+  • Each event shows: icon (Zap/CheckCircle2/AlertTriangle/ThermometerSun/ClipboardList), severity badge, title, description, timestamp, room code, RM impact
+  • Color-coded by severity (CRITICAL=red, HIGH=orange, MEDIUM=amber, LOW=emerald)
+  • Stats header: total events, last 24h count, total RM impact
+- Created DemoTour component (demo-tour.tsx): 
+  • 11-step guided tour with auto-open on first visit (localStorage flag)
+  • "Take Tour" button fixed bottom-left for manual restart
+  • Each step: icon, step counter, highlight badge, title, description, progress dots, Previous/Next/Skip buttons
+  • Navigates to relevant view when stepping through (e.g., step 2 → Command Center, step 4 → Cold Room Map)
+  • Framer-motion spring animation for tour card entrance/exit
+  • Color-coded by step theme (emerald/red/orange/amber/sky/violet)
+- Added ActivityFeed to Command Center in 2-column grid alongside Priority Alerts
+- Added DemoTour to main page with onViewChange handler for view navigation
+- Fixed JSX indentation bug in command-center.tsx that caused parsing error (misaligned topNotifications.map block)
+- Browser verification:
+  • Demo tour auto-opens on first visit, navigates through 11 steps, skips on demand
+  • Activity feed shows 9 events · 8 in last 24h · RM 232.66 total impact
+  • Events include: ghost load resolved, setback completed, notification approved, work order created/resolved
+  • All 8 views render without errors after fix
+  • Lint clean
+
+Stage Summary:
+- ✅ Guided Demo Tour wizard (11 steps, auto-open, view navigation)
+- ✅ Live Activity Feed with auto-refresh + framer-motion animations
+- ✅ Activity API tested and verified
+- ✅ JSX parsing bug fixed
+- ✅ Lint clean, no console errors
+
+## Current Project Status
+- 8 views: Command Center, Cold Room Map, Work Orders, Notifications, WMS Stock, Analytics, Schedule, Settings
+- 3 mini-services: Next.js (:3000), BMS simulator (:3004), Realtime hub (:3003)
+- 20 API routes (including new /api/activity)
+- 14 component files in src/components/coldops/ (including new activity-feed.tsx + demo-tour.tsx)
+- All modules from original brief implemented + ESG dashboard + animated gauges + demo tour + activity feed
+- Real-time Socket.io updates, framer-motion transitions, Quick Actions panel, circular gauges, CSV export, multi-zone charts
+
+## Unresolved Issues / Next Steps
+- No known bugs — platform is stable and feature-rich
+- Potential next features: room comparison radar chart, PDF report generation, multi-factory dashboard, BACnet/Modbus adapter stubs, mobile companion app
