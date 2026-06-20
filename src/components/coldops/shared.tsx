@@ -144,12 +144,13 @@ export function TopNav({
         isVisible ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0 pointer-events-none'
       }`}
     >
-      <div className="bg-white/80 backdrop-blur-[16px] border border-[rgba(255,255,255,0.9)] rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] px-3 h-[52px] flex items-center gap-6">
+      <div className="bg-white/80 backdrop-blur-[16px] border border-[rgba(255,255,255,0.9)] rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] px-8 h-[56px] flex items-center gap-10">
         
-        {}
-        <div className="flex items-center gap-1 flex-shrink-0 pl-3">
-          <span className="text-[14px] font-[800] text-[#111827]">Cold</span>
-          <span className="text-[14px] font-[800] text-[#0EA5E9]">Ops</span>
+        {/* Logo */}
+        <div className="flex items-center flex-shrink-0 mr-4">
+          <img src="/logo.svg" alt="ColdOps Logo" className="h-7 w-7 mr-2" />
+          <span className="text-[16px] font-[900] text-[#111827]">Cold</span>
+          <span className="text-[16px] font-[900] text-[#0EA5E9]">Ops</span>
         </div>
 
         {}

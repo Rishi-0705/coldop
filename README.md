@@ -36,8 +36,16 @@ Industrial coolers consume massive amounts of energy, often accounting for up to
 
 **Ways to startup this application**
 
-**Live Deployment:**  
-[Vercel Deployment Link](https://coldop.vercel.app/) *(Note: Requires configuring the Python backend URL in Vercel environment variables).*
+**Live Deployment (Render):**  
+ColdOps is fully configured to be deployed as a monorepo on [Render](https://render.com).
+We use a `render.yaml` Blueprint to automatically deploy both the Next.js Frontend and the FastAPI Backend.
+
+**To deploy to Render:**
+1. Push your repository to GitHub.
+2. Sign in to [Render dashboard](https://dashboard.render.com).
+3. Click **New +** and select **Blueprints**.
+4. Connect your GitHub repository.
+5. Render will automatically read `render.yaml` and spin up both the Frontend and Backend services, seamlessly connecting them via environment variables.
 
 **Preparation to run locally:**
 1. Ensure you have **Node.js** (v18+) and **Python** (3.8+) installed.
@@ -52,3 +60,5 @@ Alternatively, for existing users that have all the dependencies installed, you 
 ```bash
 npm run dev
 ```
+
+To test our system using real WSM files? See coldop/public and select either of one .csv files!

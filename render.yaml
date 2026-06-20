@@ -1,0 +1,25 @@
+services:
+  # Next.js Frontend
+  - type: web
+    name: coldops-frontend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_PYTHON_BACKEND_URL
+        fromService:
+          type: web
+          name: coldops-backend
+          envVarKey: RENDER_EXTERNAL_URL
+
+  # FastAPI + YOLOv8 Backend
+  - type: web
+    name: coldops-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/analyze_cooler.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
