@@ -5,9 +5,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const status = searchParams.get('status') // OPEN / APPROVED / DEFERRED / DISMISSED / RESOLVED
-  const severity = searchParams.get('severity') // CRITICAL / HIGH / MEDIUM / LOW
-  const type = searchParams.get('type') // GHOST_LOAD / CONSOLIDATION / SETBACK / WORK_ORDER / SAFETY / SYSTEM
+  const status = searchParams.get('status') 
+  const severity = searchParams.get('severity') 
+  const type = searchParams.get('type') 
   const limit = parseInt(searchParams.get('limit') || '100')
 
   const where: any = {}

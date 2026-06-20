@@ -3,22 +3,12 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/activity
- * Returns a unified activity feed combining all system events:
- *  - Ghost load detections + resolutions
- *  - Setback events (started, completed, aborted)
- *  - Work order creations + completions
- *  - Notification approvals/deferrals/dismissals
- *  - Savings milestones
- *
- * All events normalized to: { id, type, severity, title, description, roomId, roomCode, rmImpact, timestamp, icon }
- */
+
 export async function GET() {
-  const cutoff = new Date(Date.now() - 48 * 3600 * 1000) // last 48h
+  const cutoff = new Date(Date.now() - 48 * 3600 * 1000) 
   const events: any[] = []
 
-  // Ghost load events
+  
   const ghostEvents = await db.ghostLoadEvent.findMany({
     where: { createdAt: { gte: cutoff } },
     orderBy: { createdAt: 'desc' },
@@ -40,7 +30,7 @@ export async function GET() {
     })
   }
 
-  // Setback events
+  
   const setbacks = await db.setbackEvent.findMany({
     where: { createdAt: { gte: cutoff } },
     orderBy: { createdAt: 'desc' },
@@ -65,7 +55,7 @@ export async function GET() {
     })
   }
 
-  // Work orders
+  
   const workOrders = await db.workOrder.findMany({
     where: { createdAt: { gte: cutoff } },
     orderBy: { createdAt: 'desc' },
@@ -88,7 +78,7 @@ export async function GET() {
     })
   }
 
-  // Notification actions (approvals, deferrals, dismissals)
+  
   const notifs = await db.notification.findMany({
     where: {
       createdAt: { gte: cutoff },
@@ -113,10 +103,10 @@ export async function GET() {
     })
   }
 
-  // Sort all events by timestamp descending
+  
   events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-  // Stats
+  
   const stats = {
     total: events.length,
     last24h: events.filter(e => new Date(e.timestamp) > new Date(Date.now() - 24 * 3600 * 1000)).length,

@@ -3,10 +3,7 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/export/savings
- * Returns a CSV of savings + ghost load events for the period.
- */
+
 export async function GET() {
   const savings = await db.savingsCounter.findUnique({ where: { id: 1 } })
   const config = await db.appConfig.findUnique({ where: { id: 1 } })

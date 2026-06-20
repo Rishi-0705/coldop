@@ -5,14 +5,7 @@ import { startSetback } from '@/lib/coldops/setback'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * Complete a work order:
- *  - Mark all moves as confirmed (with timestamp)
- *  - Update each pallet's room + bay in WMS
- *  - Mark work order COMPLETED
- *  - Trigger progressive setback on each source room (now empty)
- *  - Broadcast completion
- */
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const wo = await db.workOrder.findUnique({
@@ -25,7 +18,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ ok: false, error: 'Already completed' })
   }
 
-  // Apply each move to WMS
+  
   const setbacks: string[] = []
   const sourceRoomsAffected = new Set<string>()
   for (const move of wo.moves) {
@@ -43,7 +36,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (sourceRoom) sourceRoomsAffected.add(sourceRoom.id)
   }
 
-  // Mark work order completed
+  
   const elapsedMin = wo.startedAt
     ? Math.round((Date.now() - wo.startedAt.getTime()) / 60000)
     : Math.round((Date.now() - wo.createdAt.getTime()) / 60000)
@@ -57,7 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     },
   })
 
-  // Trigger setback on each emptied source room
+  
   for (const roomId of sourceRoomsAffected) {
     const room = await db.coldRoom.findUnique({ where: { id: roomId } })
     if (!room) continue
@@ -70,7 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  // Update savings counter
+  
   const savings = await db.savingsCounter.findUnique({ where: { id: 1 } })
   if (savings) {
     await db.savingsCounter.update({

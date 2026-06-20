@@ -1,6 +1,4 @@
-/**
- * Shared types between client and server for ColdOps.
- */
+
 
 export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 export type RoomStatus = 'GHOST_LOAD' | 'CONSOLIDATION' | 'OPTIMIZED' | 'ACTIVE' | 'IDLE'
@@ -190,7 +188,7 @@ export interface ActiveSetback {
   } | null
 }
 
-// ===== Analytics types =====
+
 
 export interface HeatmapRoom {
   roomCode: string
@@ -309,7 +307,7 @@ export interface ProductionScheduleData {
   now: string
 }
 
-// ===== WMS Stock Browser types =====
+
 
 export interface WmsPallet {
   id: string
@@ -350,7 +348,7 @@ export interface WmsData {
   filters: WmsFilters
 }
 
-// ===== Settings types =====
+
 
 export interface AppConfig {
   id: number
@@ -382,7 +380,7 @@ export interface SettingsData {
   roles: Role[]
 }
 
-// ===== Room Detail types =====
+
 
 export interface RoomDetail {
   room: {
@@ -423,7 +421,7 @@ export interface RoomDetail {
   }
 }
 
-// ===== Forecast types =====
+
 
 export interface ForecastData {
   current: {
@@ -449,7 +447,7 @@ export interface ForecastData {
   tariff: number
 }
 
-// ===== Notification Detail types =====
+
 
 export interface NotificationTimelineEvent {
   at: string
@@ -464,7 +462,7 @@ export interface NotificationDetail {
   timeline: NotificationTimelineEvent[]
 }
 
-// ===== WMS Move History types =====
+
 
 export interface WmsMove {
   id: string
@@ -488,7 +486,7 @@ export interface WmsMoveHistory {
   stats: { total: number; uniqueProducts: number; uniqueRooms: number }
 }
 
-// ===== Multi-Zone types =====
+
 
 export interface MultiZoneRoom {
   code: string
@@ -511,7 +509,7 @@ export interface MultiZoneData {
   }
 }
 
-// ===== Dispatch Log types =====
+
 
 export interface DispatchEntry {
   id: string
@@ -539,7 +537,7 @@ export interface DispatchLog {
   }
 }
 
-// ===== ESG types =====
+
 
 export interface EsgData {
   co2: {
@@ -563,7 +561,7 @@ export interface EsgData {
   tariff: number
 }
 
-// ===== Activity Feed types =====
+
 
 export interface ActivityEvent {
   id: string
@@ -588,7 +586,7 @@ export interface ActivityData {
   }
 }
 
-// ===== Room Comparison types =====
+
 
 export interface RoomComparisonRoom {
   code: string
@@ -620,7 +618,7 @@ export interface RoomComparisonData {
   axes: { key: string; label: string; fullLabel: string }[]
 }
 
-// ===== BMS Adapter types =====
+
 
 export interface BmsAdapter {
   id: string

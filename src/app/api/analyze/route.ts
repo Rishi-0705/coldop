@@ -11,15 +11,7 @@ const DEFAULT_SCHEDULE: ScheduleConfig = {
   shutdownTime: '23:00',
 }
 
-/**
- * POST /api/analyze
- * Body: {
- *   wmsData: { coolerCode, stockType, stockCount, maxCapacity }[]
- *   schedule?: ScheduleConfig
- * }
- * 
- * Runs the smart decision engine and returns per-cooler recommendations.
- */
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()

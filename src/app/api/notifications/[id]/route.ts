@@ -3,15 +3,7 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/notifications/[id]
- * Returns full notification detail with related entities:
- *  - If GHOST_LOAD: linked ghost load event + room BMS state
- *  - If CONSOLIDATION: linked work order + moves
- *  - If SETBACK: linked setback event + ramp history
- *  - If WORK_ORDER: linked work order + moves
- *  - Action timeline (all status changes)
- */
+
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const notif = await db.notification.findUnique({
@@ -28,7 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     timeline: [],
   }
 
-  // Build action timeline
+  
   detail.timeline.push({
     at: notif.createdAt,
     event: 'CREATED',
@@ -42,7 +34,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     })
   }
 
-  // Fetch related entities based on type
+  
   if (notif.type === 'GHOST_LOAD' && notif.roomId) {
     const ghostEvents = await db.ghostLoadEvent.findMany({
       where: { roomId: notif.roomId },
@@ -54,7 +46,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       orderBy: { createdAt: 'desc' },
       take: 5,
     })
-    // Add to timeline
+    
     for (const ge of ghostEvents) {
       detail.timeline.push({
         at: ge.startTime,
@@ -116,7 +108,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     detail.related = { type: 'SETBACK', setback }
   }
 
-  // Sort timeline by date descending
+  
   detail.timeline.sort((a: any, b: any) => new Date(b.at).getTime() - new Date(a.at).getTime())
 
   return NextResponse.json(detail)

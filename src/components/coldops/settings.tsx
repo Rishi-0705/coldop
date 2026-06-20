@@ -97,7 +97,7 @@ export function SettingsView() {
 
   return (
     <div className="space-y-4 max-w-[1000px]">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -122,7 +122,7 @@ export function SettingsView() {
         </div>
       </div>
 
-      {/* Tariff & Cost Settings */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -161,7 +161,7 @@ export function SettingsView() {
         </CardContent>
       </Card>
 
-      {/* Detection Rules */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -213,7 +213,7 @@ export function SettingsView() {
         </CardContent>
       </Card>
 
-      {/* BMS Integration */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -242,7 +242,7 @@ export function SettingsView() {
         </CardContent>
       </Card>
 
-      {/* Roles & Permissions */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -271,7 +271,7 @@ export function SettingsView() {
         </CardContent>
       </Card>
 
-      {/* Current impact summary */}
+      {}
       <Card className="border-blue-200 bg-blue-50/30">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
@@ -289,18 +289,18 @@ export function SettingsView() {
         </CardContent>
       </Card>
 
-      {/* BMS Protocol Adapters */}
+      {}
       <BmsAdapterPanel />
 
-      {/* Notification Dispatch Log */}
+      {}
       <DispatchLogPanel />
     </div>
   )
 }
 
-// ============================================================================
-// NOTIFICATION DISPATCH LOG
-// ============================================================================
+
+
+
 
 function DispatchLogPanel() {
   const [data, setData] = useState<{ log: any[]; stats: any } | null>(null)

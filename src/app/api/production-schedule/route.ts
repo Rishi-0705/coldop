@@ -3,10 +3,7 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/production-schedule
- * Returns production schedule (past 24h + next 24h) for Gantt display.
- */
+
 export async function GET() {
   const cutoff = new Date(Date.now() - 24 * 3600 * 1000)
   const future = new Date(Date.now() + 24 * 3600 * 1000)
@@ -22,7 +19,7 @@ export async function GET() {
     orderBy: { startTime: 'asc' },
   })
 
-  // Determine current production status per line
+  
   const now = new Date()
   const lines = schedules.reduce((acc, s) => {
     if (!acc[s.line]) acc[s.line] = { line: s.line, current: null, next: null, batches: [] }
@@ -34,8 +31,8 @@ export async function GET() {
 
   const lineArray = Object.values(lines)
 
-  // Ghost load window: the gap between last production end and next production start
-  // (only if that gap is in the past or current)
+  
+  
   const ghostWindows: { line: string; start: string; end: string; durationHours: number }[] = []
   for (const line of lineArray) {
     const batches = line.batches.sort((a: any, b: any) => a.startTime.getTime() - b.endTime.getTime())

@@ -3,10 +3,7 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/export/work-orders
- * Returns a CSV of all work orders + their moves.
- */
+
 export async function GET() {
   const workOrders = await db.workOrder.findMany({
     orderBy: { createdAt: 'desc' },

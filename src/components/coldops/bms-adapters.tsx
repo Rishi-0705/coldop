@@ -60,7 +60,7 @@ export function BmsAdapterPanel() {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Adapter cards */}
+        {}
         <div className="grid gap-2 sm:grid-cols-2">
           {data.adapters.map((adapter, i) => {
             const sc = statusConfig[adapter.status] || statusConfig.OFFLINE
@@ -116,7 +116,7 @@ export function BmsAdapterPanel() {
                   <div className="text-[9px] text-amber-700 mt-1.5 italic">{adapter.note}</div>
                 )}
 
-                {/* Capabilities */}
+                {}
                 <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-border/40">
                   {adapter.capabilities.map(cap => (
                     <span key={cap} className="text-[8px] px-1 py-0.5 rounded bg-muted/60 text-muted-foreground font-mono">
@@ -131,7 +131,7 @@ export function BmsAdapterPanel() {
 
         <Separator className="my-4" />
 
-        {/* Protocol support table */}
+        {}
         <div>
           <div className="text-xs font-medium mb-2 flex items-center gap-1.5">
             <Cpu className="h-3.5 w-3.5 text-muted-foreground" />

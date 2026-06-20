@@ -82,7 +82,7 @@ export function ColdOpsApp({ initialView = 'ingestion' }: { initialView?: ViewKe
   })
   useRealtimeEvent('room-status-changed', () => fetchAll())
 
-  // Keyboard: → = Actions, ← = Configure, ↑ = Dashboard
+  
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return

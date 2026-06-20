@@ -1,20 +1,9 @@
-/**
- * ColdOps Smart Decision Engine
- *
- * Hybrid rule-based system that computes per-cooler temperature recommendations
- * and stock consolidation plans from:
- *   - WMS data (stock type, count, capacity per cooler)
- *   - Current real-world time
- *   - Company schedule (peak/working/shutdown hours from Step 1)
- *
- * No LLM required — all decisions are deterministic and explainable.
- * Action statements are generated from structured templates.
- */
+
 
 import { db } from '@/lib/db'
 import { planConsolidation, TNB_TARIFF, CO2_PER_KWH_KG } from '@/lib/coldops/detection'
 
-// ─── Stock type → safe temperature range mapping ──────────────────────────
+
 
 export const STOCK_TEMP_MAP: Record<string, { min: number; max: number; label: string }> = {
   DAIRY:          { min: 2,   max: 4,   label: 'Dairy products' },
@@ -30,10 +19,10 @@ export const STOCK_TEMP_MAP: Record<string, { min: number; max: number; label: s
   DRY_GOODS:      { min: 10,  max: 15,  label: 'Dry goods' },
 }
 
-// ─── Schedule helpers ─────────────────────────────────────────────────────
+
 
 export interface ScheduleConfig {
-  peakStart: string    // 'HH:MM'
+  peakStart: string    
   peakEnd: string
   workStart: string
   workEnd: string
@@ -66,7 +55,7 @@ export function getTimeWindow(schedule: ScheduleConfig): TimeWindow {
   return 'WORKING'
 }
 
-// ─── Per-cooler recommendation ────────────────────────────────────────────
+
 
 export interface CoolerInput {
   coolerId: string
@@ -110,7 +99,7 @@ export function computeRecommendation(
   let reason: string
 
   if (timeWindow === 'SHUTDOWN') {
-    // Facility is idle — warm up towards the safe max to save compressor energy
+    
     recommended = Math.min(maxSafeTemp, tempSpec.max)
     if (recommended > currentSetpoint) {
       reason = `Off-peak scheduled adjustment. Stock (${Math.round(utilPct * 100)}% full) will be stable overnight. Raising setpoint to ${recommended}°C will save significant compressor energy.`
@@ -120,31 +109,31 @@ export function computeRecommendation(
       reason = `Off-peak scheduled adjustment. Maintaining setpoint at ${recommended}°C for overnight stability.`
     }
   } else if (timeWindow === 'PEAK') {
-    // High demand — keep coldest safe temperature
+    
     recommended = Math.max(minSafeTemp, tempSpec.min)
     reason = `Peak operating hours. Keeping setpoint at minimum (${recommended}°C) for maximum safety margin during high activity.`
   } else {
-    // Normal working hours — tune based on utilisation
+    
     if (utilPct < 0.25) {
-      // Very low stock — slight warm-up to save energy
+      
       recommended = +(tempSpec.min + (tempSpec.max - tempSpec.min) * 0.6).toFixed(1)
       reason = `Low stock level (${Math.round(utilPct * 100)}%). Raising setpoint to ${recommended}°C — less thermal mass means the room holds temperature with less energy.`
     } else if (utilPct > 0.75) {
-      // High stock — stay at minimum for full cold chain protection
+      
       recommended = tempSpec.min
       reason = `High stock level (${Math.round(utilPct * 100)}%). Maintaining minimum setpoint (${recommended}°C) to protect full cold chain load.`
     } else {
-      // Mid-range — balanced setpoint
+      
       recommended = +((tempSpec.min + tempSpec.max) / 2).toFixed(1)
       reason = `Normal stock level (${Math.round(utilPct * 100)}%). Balanced setpoint at ${recommended}°C optimises energy vs cold chain safety.`
     }
   }
 
-  // Clamp to room's hard safety bounds
+  
   recommended = Math.max(minSafeTemp, Math.min(maxSafeTemp, recommended))
 
   const deltaTemp = recommended - currentSetpoint
-  // Estimate: 1°C warmer ≈ 3% less compressor energy. Average room = 15kW.
+  
   const maxKW = input.currentKW ?? 15
   const estimatedKwhSavedPerHour = +(maxKW * 0.03 * deltaTemp).toFixed(2)
   const estimatedRmSavedPerHour = +(estimatedKwhSavedPerHour * TNB_TARIFF).toFixed(3)
@@ -169,7 +158,7 @@ export function computeRecommendation(
   }
 }
 
-// ─── Engine result ────────────────────────────────────────────────────────
+
 
 export interface EngineResult {
   timeWindow: TimeWindow
@@ -180,23 +169,18 @@ export interface EngineResult {
   generatedAt: string
 }
 
-// ─── Main entry point ─────────────────────────────────────────────────────
 
-/**
- * runSmartEngine
- *
- * @param wmsData   Array of {coolerCode, stockType, stockCount, maxCapacity}
- * @param schedule  Company schedule from Step 1 (saved in localStorage/request body)
- */
+
+
 export async function runSmartEngine(
   wmsData: { coolerCode: string; stockType: string; stockCount: number; maxCapacity: number }[],
   schedule: ScheduleConfig,
 ): Promise<EngineResult> {
-  // Always forecast recommendations for the upcoming off-peak (SHUTDOWN) window
+  
   const timeWindow = 'SHUTDOWN'
   const rooms = await db.coldRoom.findMany()
 
-  // Build recommendations for each cooler that has WMS data
+  
   const recommendations: CoolerRecommendation[] = []
 
   for (const entry of wmsData) {
@@ -219,7 +203,7 @@ export async function runSmartEngine(
     )
     recommendations.push(rec)
 
-    // Persist recommendation to DB so cooler cards can show it
+    
     await db.coldRoom.update({
       where: { id: room.id },
       data: {
@@ -230,7 +214,7 @@ export async function runSmartEngine(
     })
   }
 
-  // Clear stale open temperature notifications then create new ones
+  
   await db.notification.updateMany({
     where: { type: 'TEMP_ADJUSTMENT', status: 'OPEN' },
     data: { status: 'DISMISSED', resolvedAt: new Date() },
@@ -263,7 +247,7 @@ export async function runSmartEngine(
     })
   }
 
-  // Run consolidation planner
+  
   const consolidationPlan = await planConsolidation()
 
   const totalRM = recommendations.reduce((s, r) => s + r.estimatedRmSavedPerHour, 0)

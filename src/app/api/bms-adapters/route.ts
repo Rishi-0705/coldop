@@ -2,12 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/bms-adapters
- * Returns mock BMS adapter information showing the protocol abstraction layer.
- * In production, ColdOps supports BACnet/IP, Modbus TCP, and REST API adapters
- * for different BMS vendors (Siemens, Honeywell, Schneider, Johnson Controls).
- */
+
 export async function GET() {
   const adapters = [
     {

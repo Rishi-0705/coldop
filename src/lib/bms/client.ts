@@ -1,7 +1,4 @@
-/**
- * BMS client — talks to the BMS Simulator mini-service on port 3004.
- * Server-side only (no XTransformPort needed; we're not in the browser).
- */
+
 const BMS_BASE = 'http://localhost:3004'
 
 export interface BmsRoomState {

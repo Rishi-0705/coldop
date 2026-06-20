@@ -3,12 +3,7 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/dispatch-log
- * Returns a simulated dispatch log of email/SMS/WhatsApp notifications sent.
- * In production this would be a real notification queue; for the demo we
- * synthesize from the notifications table based on severity + channels.
- */
+
 export async function GET() {
   const notifs = await db.notification.findMany({
     orderBy: { createdAt: 'desc' },
@@ -16,7 +11,7 @@ export async function GET() {
     include: { room: true },
   })
 
-  // Build a dispatch log entry for each notification that has SMS/WhatsApp/Email channels
+  
   const log = notifs
     .filter(n => n.channels && n.channels !== 'DASHBOARD')
     .map(n => {
@@ -24,7 +19,7 @@ export async function GET() {
       return channels.map(ch => {
         const isCritical = n.severity === 'CRITICAL'
         const isHigh = n.severity === 'HIGH'
-        // Simulate recipient + delivery status
+        
         const recipients: Record<string, { to: string; name: string }> = {
           SMS: { to: '+60 12-345 6789', name: 'Shift Supervisor' },
           WHATSAPP: { to: '+60 12-345 6789', name: 'Warehouse Team A' },
@@ -50,7 +45,7 @@ export async function GET() {
     })
     .flat()
 
-  // Stats
+  
   const stats = {
     total: log.length,
     byChannel: {

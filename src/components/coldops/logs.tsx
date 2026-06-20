@@ -101,7 +101,7 @@ export function LogsView() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {}
       <div>
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <ScrollText className="h-5 w-5 text-primary" />
@@ -115,7 +115,7 @@ export function LogsView() {
         </p>
       </div>
 
-      {/* Stats + filters */}
+      {}
       <Card className="border-border/60">
         <CardContent className="p-3">
           <div className="flex items-center gap-3 flex-wrap">
@@ -145,7 +145,7 @@ export function LogsView() {
         </CardContent>
       </Card>
 
-      {/* Log entries */}
+      {}
       <Card className="border-border/60">
         <CardContent className="p-0">
           {loading ? (
@@ -176,9 +176,9 @@ export function LogsView() {
   )
 }
 
-// ============================================================================
-// LOG ENTRY — with technique description
-// ============================================================================
+
+
+
 
 function LogEntry({ event, index }: { event: ActivityEvent; index: number }) {
   const c = severityColor(event.severity as any) || severityColor('LOW')
@@ -197,24 +197,24 @@ function LogEntry({ event, index }: { event: ActivityEvent; index: number }) {
       className={`rounded-lg border ${c.border} ${c.bg} p-3`}
     >
       <div className="flex items-start gap-3">
-        {/* Icon */}
+        {}
         <div className={`grid place-items-center h-8 w-8 rounded-lg bg-card/80 ${catColor} flex-shrink-0`}>
           <Icon className="h-4 w-4" />
         </div>
 
-        {/* Content */}
+        {}
         <div className="flex-1 min-w-0">
-          {/* Header row */}
+          {}
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="font-semibold text-sm">{event.title}</span>
             <Badge variant="outline" className={`text-[9px] ${c.text} border-current`}>{event.severity}</Badge>
             <Badge variant="outline" className="text-[9px]">{event.type.replace(/_/g, ' ')}</Badge>
           </div>
 
-          {/* Description */}
+          {}
           <div className="text-xs text-muted-foreground mb-2">{event.description}</div>
 
-          {/* Technique used */}
+          {}
           {technique && (
             <div className="rounded-md bg-card/60 border border-border/40 p-2 mb-2">
               <div className="flex items-center gap-1.5 mb-0.5">
@@ -225,7 +225,7 @@ function LogEntry({ event, index }: { event: ActivityEvent; index: number }) {
             </div>
           )}
 
-          {/* Metadata */}
+          {}
           <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-2.5 w-2.5" />

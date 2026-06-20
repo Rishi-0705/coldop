@@ -5,7 +5,7 @@ import { planConsolidation } from '@/lib/coldops/detection'
 
 export const dynamic = 'force-dynamic'
 
-// Map old Zone_Type values to the new stock_type keys
+
 const ZONE_TO_STOCK_TYPE: Record<string, string> = {
   CHILLED_STORAGE:  'CHILLED_STORAGE',
   BLAST_FREEZER:    'BLAST_FREEZER',
@@ -24,11 +24,7 @@ const DEFAULT_SCHEDULE: ScheduleConfig = {
   shutdownTime: '23:00',
 }
 
-/**
- * Detect which CSV format this file is.
- * New: cooler_id, stock_type, stock_count, max_capacity (4 cols)
- * Old: Bin_Location_ID, Zone_Type, Target_Temp_Setpoint, Max_Pallet_Capacity, Current_Pallet_Count, ... (7 cols)
- */
+
 function detectFormat(header: string): 'new' | 'old' {
   const lower = header.toLowerCase()
   if (lower.includes('stock_type') || lower.includes('cooler_id')) return 'new'
@@ -53,11 +49,11 @@ export async function POST(req: Request) {
     const format = detectFormat(lines[0])
     let startIndex = 1
 
-    // { coolerCode → { stockType, stockCount, maxCapacity } }
+    
     const roomData: Record<string, { stockType: string; stockCount: number; maxCapacity: number }> = {}
 
     if (format === 'new') {
-      // NEW FORMAT: cooler_id, stock_type, stock_count, max_capacity
+      
       for (let i = startIndex; i < lines.length; i++) {
         const parts = lines[i].split(',').map(p => p.trim())
         if (parts.length < 4) continue
@@ -66,10 +62,10 @@ export async function POST(req: Request) {
         if (!roomData[code]) roomData[code] = { stockType: stockType.toUpperCase(), stockCount: 0, maxCapacity: 0 }
         roomData[code].stockCount += parseInt(stockCountStr, 10) || 0
         roomData[code].maxCapacity = Math.max(roomData[code].maxCapacity, parseInt(maxCapacityStr, 10) || 0)
-        roomData[code].stockType = stockType.toUpperCase() // last row wins for type
+        roomData[code].stockType = stockType.toUpperCase() 
       }
     } else {
-      // OLD FORMAT: Bin_Location_ID, Zone_Type, Target_Temp_Setpoint, Max_Pallet_Capacity, Current_Pallet_Count, ...
+      
       for (let i = startIndex; i < lines.length; i++) {
         const parts = lines[i].split(',').map(p => p.trim())
         if (parts.length < 5) continue
@@ -93,7 +89,7 @@ export async function POST(req: Request) {
 
     let updatedRooms = 0
 
-    // Update DB pallet counts per room
+    
     for (const [code, entry] of Object.entries(roomData)) {
       const room = await db.coldRoom.findFirst({ where: { code } })
       if (!room) continue
@@ -130,7 +126,7 @@ export async function POST(req: Request) {
       updatedRooms++
     }
 
-    // Run the smart engine
+    
     const wmsData = Object.entries(roomData).map(([coolerCode, entry]) => ({
       coolerCode,
       stockType: entry.stockType,
@@ -140,7 +136,7 @@ export async function POST(req: Request) {
 
     const engineResult = await runSmartEngine(wmsData, schedule)
 
-    // Also dismiss stale CONSOLIDATION_SUGGESTED notifications and re-run consolidation planner
+    
     await db.notification.updateMany({
       where: { type: 'CONSOLIDATION_SUGGESTED', status: 'OPEN' },
       data: { status: 'DISMISSED', resolvedAt: new Date() },

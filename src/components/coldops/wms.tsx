@@ -75,7 +75,7 @@ export function WmsView() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -92,7 +92,7 @@ export function WmsView() {
         </Button>
       </div>
 
-      {/* Stats strip */}
+      {}
       {data && (
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6">
           <StatChip icon={Package} label="Total pallets" value={data.stats.total} tone="primary" />
@@ -104,7 +104,7 @@ export function WmsView() {
         </div>
       )}
 
-      {/* Filters */}
+      {}
       <Card className="border-border/60">
         <CardContent className="p-3">
           <div className="flex items-center gap-2 flex-wrap">
@@ -175,7 +175,7 @@ export function WmsView() {
         </CardContent>
       </Card>
 
-      {/* Pallet table */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -200,7 +200,7 @@ export function WmsView() {
           ) : (
             <ScrollArea className="h-[600px]">
               <div className="min-w-[800px]">
-                {/* Header row */}
+                {}
                 <div className="grid grid-cols-[40px_100px_1fr_80px_90px_100px_90px_60px] gap-2 px-3 py-2 border-b border-border/60 bg-muted/30 text-[10px] font-medium text-muted-foreground uppercase tracking-wide sticky top-0 z-10">
                   <div>#</div>
                   <div>Lot</div>
@@ -211,7 +211,7 @@ export function WmsView() {
                   <div>Days</div>
                   <div>Tags</div>
                 </div>
-                {/* Rows */}
+                {}
                 {data.pallets.map((p, i) => (
                   <PalletRow key={p.id} pallet={p} index={i} />
                 ))}
@@ -221,7 +221,7 @@ export function WmsView() {
         </CardContent>
       </Card>
 
-      {/* Category breakdown */}
+      {}
       {data && Object.keys(data.stats.byCategory).length > 0 && (
         <Card className="border-border/60">
           <CardHeader className="pb-2">
@@ -253,7 +253,7 @@ export function WmsView() {
         </Card>
       )}
 
-      {/* Move History */}
+      {}
       <WmsMoveHistory />
     </div>
   )
@@ -327,9 +327,9 @@ function PalletRow({ pallet, index }: { pallet: WmsPallet; index: number }) {
   )
 }
 
-// ============================================================================
-// WMS MOVE HISTORY SECTION
-// ============================================================================
+
+
+
 
 export function WmsMoveHistory() {
   const [moves, setMoves] = useState<any[]>([])

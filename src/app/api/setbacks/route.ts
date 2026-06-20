@@ -3,10 +3,7 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/setbacks
- * Returns setback history (completed + aborted + executing).
- */
+
 export async function GET() {
   const setbacks = await db.setbackEvent.findMany({
     orderBy: { createdAt: 'desc' },
@@ -35,7 +32,7 @@ export async function GET() {
       abortReason: s.abortReason,
       workOrderId: s.workOrderId,
       maxPowerKW: s.room?.maxPowerKW,
-      // Estimate RM saved if completed: (maxPowerKW * 0.4) * tariff * 8h
+      
       estRmSaved: s.status === 'COMPLETED' && s.room ? Math.round(s.room.maxPowerKW * 0.4 * 0.509 * 8 * 100) / 100 : 0,
     }
   })

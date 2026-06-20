@@ -1,17 +1,8 @@
-/**
- * ColdOps Detection Engine
- *
- * Deterministic rule-based detection for:
- *  - Ghost Load (compressors running when no production)
- *  - Underutilization (rooms below threshold %)
- *  - FEFO violations (pallets near expiry in wrong pickup order)
- *
- * NO machine learning — explainable rules per design decision.
- */
+
 import { db } from '@/lib/db'
 
-export const TNB_TARIFF = 0.509 // RM per kWh commercial
-export const CO2_PER_KWH_KG = 0.583 // TNB grid factor
+export const TNB_TARIFF = 0.509 
+export const CO2_PER_KWH_KG = 0.583 
 
 export interface SeverityInput {
   rmWaste: number
@@ -201,9 +192,7 @@ export interface ConsolidationPlan {
   moves: ConsolidationMove[]
 }
 
-/**
- * Greedy consolidation planner (NOT a VRP solver — per design decision).
- */
+
 export async function planConsolidation(): Promise<ConsolidationPlan | null> {
   const config = await db.appConfig.findUnique({ where: { id: 1 } })
   if (!config) return null
@@ -215,7 +204,7 @@ export async function planConsolidation(): Promise<ConsolidationPlan | null> {
   const candidates = utils.filter(u => u.utilizationPct < threshold * 100)
   if (candidates.length < 2) return null
 
-  // Group candidates by target temperature band (so 4°C Chilled + 4°C Finished Goods can merge)
+  
   const byTempBand: Record<string, RoomUtilization[]> = {}
   for (const c of candidates) {
     const band = `${Math.round(c.targetTemp)}C`
@@ -234,24 +223,24 @@ export async function planConsolidation(): Promise<ConsolidationPlan | null> {
   if (!bestBand) return null
 
   const zoneRooms = byTempBand[bestBand]
-  // All rooms in the same temperature band (for dest selection)
+  
   const targetTemp = zoneRooms[0].targetTemp
   const allRoomsInBand = utils.filter(u => Math.round(u.targetTemp) === Math.round(targetTemp))
 
-  // Prefer a NON-candidate destination (a well-utilized room that can absorb pallets),
-  // falling back to the candidate with most headroom if no non-candidate qualifies.
+  
+  
   let dest: RoomUtilization | null = null
   let maxHeadroom = 0
-  // First pass: non-candidates with headroom
+  
   for (const r of allRoomsInBand) {
-    if (zoneRooms.find(z => z.roomId === r.roomId)) continue // skip candidates
+    if (zoneRooms.find(z => z.roomId === r.roomId)) continue 
     const headroom = r.capacityPallets - r.palletCount
     if (headroom > maxHeadroom) {
       maxHeadroom = headroom
       dest = r
     }
   }
-  // Second pass (fallback): candidates with headroom
+  
   if (!dest) {
     for (const r of zoneRooms) {
       const headroom = r.capacityPallets - r.palletCount
@@ -336,10 +325,7 @@ export async function planConsolidation(): Promise<ConsolidationPlan | null> {
   }
 }
 
-/**
- * Build the progressive setback ramp schedule.
- * Compressed-time: 4 seconds per step (instead of 15 min) for demo.
- */
+
 export function buildRampSchedule(startSetpoint: number, endSetpoint: number, stepSeconds = 4, numSteps = 4) {
   const steps: { step: number; setpoint: number; atSec: number; confirmed: boolean }[] = []
   const delta = (endSetpoint - startSetpoint) / numSteps

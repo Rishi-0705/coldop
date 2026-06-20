@@ -4,11 +4,7 @@ import { broadcast } from '@/lib/realtime/client'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * POST /api/wms/stock/[palletId]/move
- * Body: { toRoomCode, toBayCode }
- * Direct WMS move (manual override / non-consolidation).
- */
+
 export async function POST(req: Request, { params }: { params: Promise<{ palletId: string }> }) {
   const { palletId } = await params
   const body = await req.json()
@@ -23,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ palletI
   const destRoom = await db.coldRoom.findUnique({ where: { code: toRoomCode } })
   if (!destRoom) return NextResponse.json({ error: 'Destination room not found' }, { status: 404 })
 
-  // Allergen check
+  
   const destPallets = await db.pallet.findMany({ where: { roomId: destRoom.id } })
   const destAllergens = new Set(destPallets.flatMap(p => (p.allergenTags || '').split(',').filter(Boolean)))
   const palletAllergens = (pallet.allergenTags || '').split(',').filter(Boolean)

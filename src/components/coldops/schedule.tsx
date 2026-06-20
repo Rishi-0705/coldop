@@ -10,9 +10,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import type { ProductionScheduleData } from '@/lib/coldops/types'
 import { formatRM } from '@/lib/coldops/ui'
 
-// ============================================================================
-// VIEW: PRODUCTION SCHEDULE
-// ============================================================================
+
+
+
 
 export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionScheduleData | null; onRefresh: () => void }) {
   if (!schedule) {
@@ -31,7 +31,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
   const windowEnd = new Date(now.getTime() + 24 * 3600 * 1000)
   const totalHours = (windowEnd.getTime() - windowStart.getTime()) / 3600000
 
-  // Group by line
+  
   const lines = schedule.lines as any[]
   const ghostWindows = schedule.ghostWindows
 
@@ -53,7 +53,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
         </Button>
       </div>
 
-      {/* Gantt chart */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -67,7 +67,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
         <CardContent>
           <div className="overflow-x-auto">
             <div className="min-w-[800px]">
-              {/* Hour axis */}
+              {}
               <div className="flex ml-[100px] mb-2">
                 {Array.from({ length: Math.ceil(totalHours) }, (_, i) => {
                   const h = new Date(windowStart.getTime() + i * 3600000)
@@ -80,7 +80,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
                 })}
               </div>
 
-              {/* Line rows */}
+              {}
               <div className="space-y-1.5">
                 {lines.map(line => {
                   const batches = line.batches.sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.endTime).getTime())
@@ -100,12 +100,12 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
                         </div>
                       </div>
                       <div className="relative flex-1 h-8 bg-zinc-50 rounded border border-border/60 overflow-hidden">
-                        {/* Now line */}
+                        {}
                         <div
                           className="absolute top-0 bottom-0 w-0.5 bg-primary/50 z-10"
                           style={{ left: `${((now.getTime() - windowStart.getTime()) / (windowEnd.getTime() - windowStart.getTime())) * 100}%` }}
                         />
-                        {/* Batch bars */}
+                        {}
                         {batches.map((b: any) => {
                           const bStart = new Date(b.startTime).getTime()
                           const bEnd = new Date(b.endTime).getTime()
@@ -132,7 +132,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
                             </TooltipProvider>
                           )
                         })}
-                        {/* Ghost windows */}
+                        {}
                         {lineGhosts.map((g, gi) => {
                           const left = ((new Date(g.start).getTime() - windowStart.getTime()) / (windowEnd.getTime() - windowStart.getTime())) * 100
                           const width = ((new Date(g.end).getTime() - new Date(g.start).getTime()) / (windowEnd.getTime() - windowStart.getTime())) * 100
@@ -167,7 +167,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
         </CardContent>
       </Card>
 
-      {/* Ghost load windows summary */}
+      {}
       <Card className="border-red-200 bg-red-50/30">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -205,7 +205,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
         </CardContent>
       </Card>
 
-      {/* Batch list */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">

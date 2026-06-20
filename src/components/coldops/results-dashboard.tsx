@@ -17,7 +17,7 @@ import type { DashboardData, RoomWithBms, MeterData } from '@/lib/coldops/types'
 import { formatRM, formatKW, formatTemp } from '@/lib/coldops/ui'
 import { GlassCard } from '@/components/coldops/shared'
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────
+
 
 function KpiCard({ icon: Icon, label, value, sub, accent }: {
   icon: any; label: string; value: string; sub: string; accent: 'emerald' | 'blue' | 'amber'
@@ -42,7 +42,7 @@ function KpiCard({ icon: Icon, label, value, sub, accent }: {
   )
 }
 
-// ─── Cooler consumption chart ──────────────────────────────────────────────
+
 
 function CoolerEnergyChart({ meterData }: { meterData: MeterData | null }) {
   if (!meterData) return <div className="h-48 grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -63,7 +63,7 @@ function CoolerEnergyChart({ meterData }: { meterData: MeterData | null }) {
   )
 }
 
-// ─── Top consumers ─────────────────────────────────────────────────────────
+
 
 function TopConsumers({ meterData }: { meterData: MeterData | null }) {
   if (!meterData) return null
@@ -84,7 +84,7 @@ function TopConsumers({ meterData }: { meterData: MeterData | null }) {
   )
 }
 
-// ─── Status helpers ────────────────────────────────────────────────────────
+
 
 function statusDot(status: string) {
   if (status === 'GHOST_LOAD')   return 'bg-red-500 animate-pulse'
@@ -102,7 +102,7 @@ function statusLabel(status: string) {
   return { label: 'Idle', cls: 'text-zinc-600 border-zinc-200 bg-zinc-50' }
 }
 
-// ─── Temperature grid — shows current + AI recommended ────────────────────
+
 
 function TempGrid({ rooms }: { rooms: (RoomWithBms & { recommendedSetpoint?: number | null; aiReason?: string | null; lastStockType?: string | null })[] }) {
   if (!rooms.length) return <div className="h-32 grid place-items-center text-sm text-muted-foreground">No room data.</div>
@@ -145,7 +145,7 @@ function TempGrid({ rooms }: { rooms: (RoomWithBms & { recommendedSetpoint?: num
                 </div>
               </div>
 
-              {/* AI recommended setpoint */}
+              {}
               {hasRec && (
                 <div className={`rounded-[8px] px-2.5 py-2 flex items-center justify-between gap-1 mb-[12px] ${
                   Math.abs(delta) < 0.5 ? 'bg-[#F9FAFB] border border-[#E5E7EB]'
@@ -190,7 +190,7 @@ function TempGrid({ rooms }: { rooms: (RoomWithBms & { recommendedSetpoint?: num
   )
 }
 
-// ─── Activity Feed ─────────────────────────────────────────────────────────
+
 
 const EVENT_ICONS: Record<string, any> = {
   GHOST_LOAD_DETECTED: Zap,
@@ -299,7 +299,7 @@ function ActivityFeed() {
   )
 }
 
-// ─── Main view ────────────────────────────────────────────────────────────
+
 
 export function ResultsDashboard({
   dashboard,
@@ -332,14 +332,14 @@ export function ResultsDashboard({
         </p>
       </div>
 
-      {/* Hero KPI row */}
+      {}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <KpiCard icon={Zap}         label="Total Energy Saved (This Month)" value={`${kwhSaved} kWh`} sub={`Tonight: ${(savings.tonightRM / 0.509).toFixed(1)} kWh`} accent="emerald" />
         <KpiCard icon={TrendingDown} label="Total Money Saved (This Month)"  value={formatRM(savings.thisMonthRM)} sub={`This week: ${formatRM(savings.thisWeekRM)}`} accent="blue" />
         <KpiCard icon={Leaf}         label="CO₂ Avoided"                     value={`${savings.co2Tonnes.toFixed(2)} t`} sub={`≈ ${(savings.co2Tonnes * 4.5).toFixed(0)} trees saved`} accent="amber" />
       </div>
 
-      {/* 2-col grid */}
+      {}
       <div className="grid gap-5 lg:grid-cols-2">
         <GlassCard className="p-[28px]">
           <div className="flex items-center gap-3 mb-6">
@@ -380,7 +380,7 @@ export function ResultsDashboard({
         </GlassCard>
       </div>
 
-      {/* Temperature grid with AI recommendations */}
+      {}
       <GlassCard className="px-[32px] py-[28px]">
         <div className="flex items-center gap-3 mb-6">
           <div className="h-[36px] w-[36px] rounded-[10px] bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE] flex items-center justify-center flex-shrink-0">
@@ -401,7 +401,7 @@ export function ResultsDashboard({
         <TempGrid rooms={rooms as any} />
       </GlassCard>
 
-      {/* Recent activity feed */}
+      {}
       <ActivityFeed />
     </div>
   )

@@ -1,6 +1,4 @@
-/**
- * UI helper utilities for ColdOps.
- */
+
 import type { Severity, RoomStatus } from '@/lib/coldops/types'
 
 export function severityColor(sev: Severity): { bg: string; text: string; border: string; dot: string } {

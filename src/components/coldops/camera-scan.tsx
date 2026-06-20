@@ -53,7 +53,7 @@ export function CameraScan() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  // Start camera
+  
   const startCamera = async () => {
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
@@ -69,7 +69,7 @@ export function CameraScan() {
     }
   }
 
-  // Stop camera
+  
   const stopCamera = () => {
     if (stream) {
       stream.getTracks().forEach(t => t.stop())
@@ -82,12 +82,12 @@ export function CameraScan() {
     return () => { if (stream) stream.getTracks().forEach(t => t.stop()) }
   }, [stream])
 
-  // Capture frame + scan
+  
   const captureAndScan = async () => {
     if (!videoRef.current || !canvasRef.current) return
     setScanning(true)
 
-    // Capture frame to canvas
+    
     const video = videoRef.current
     const canvas = canvasRef.current
     canvas.width = video.videoWidth || 640
@@ -96,7 +96,7 @@ export function CameraScan() {
     if (!ctx) return
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-    // Convert to base64
+    
     const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
 
     try {
@@ -128,7 +128,7 @@ export function CameraScan() {
     }
   }
 
-  // Upload image file instead of camera
+  
   const uploadImage = async (file: File) => {
     setScanning(true)
     const reader = new FileReader()
@@ -167,12 +167,12 @@ export function CameraScan() {
     setCurrentResult(null)
   }
 
-  // Sort batch results by severity
+  
   const sortedBatch = [...scanResults].sort((a, b) => b.severityScore - a.severityScore)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {}
       <div>
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Camera className="h-5 w-5 text-primary" />
@@ -186,7 +186,7 @@ export function CameraScan() {
         </p>
       </div>
 
-      {/* Mode selector + controls */}
+      {}
       <Card className="border-border/60">
         <CardContent className="p-3">
           <div className="flex items-center gap-3 flex-wrap">
@@ -254,7 +254,7 @@ export function CameraScan() {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Camera feed */}
+        {}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <SectionHeader icon={Camera} title="Live Camera Feed" description="Real webcam stream — capture a frame to send to VLM for product identification" detailed="Uses the browser <b>getUserMedia API</b> to stream a 640×480 webcam feed, then on capture draws the current frame to a hidden <b>canvas</b> and encodes it as base64 JPEG. That image is the only thing sent to the VLM — no continuous video upload. This is the sensor that replaces an expensive fixed camera pipeline: any laptop or phone with a webcam becomes a ColdOps inspection terminal." />
@@ -282,7 +282,7 @@ export function CameraScan() {
                   </div>
                 </div>
               )}
-              {/* Scan overlay */}
+              {}
               {cameraActive && (
                 <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/60 text-white text-[10px]">
                   <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -292,25 +292,13 @@ export function CameraScan() {
             </div>
             <canvas ref={canvasRef} className="hidden" />
 
-            {/* Upload alternative */}
+            {}
             <div className="mt-3 flex items-center gap-2">
               <Label className="text-[10px] text-muted-foreground">Or upload an image:</Label>
               <label className="cursor-pointer">
                 <input
                   type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0])}
-                />
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/60 text-xs hover:bg-muted/30 cursor-pointer">
-                  <Upload className="h-3.5 w-3.5" /> Upload Image
-                </span>
-              </label>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Current scan result */}
+                  accept="image}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <SectionHeader icon={Scan} title="Detection Result" description="VLM product identification + system recommendation ranked by severity" detailed="Renders the structured VLM response (product, count, category, visible text, confidence) alongside the <b>matched catalog spec</b> (safe temp range, shelf life, allergens) and any issues found — temperature out of range, low stock, near-expiry, unknown product. The bottom card surfaces the system recommendation with a one-tap <b>Approve &amp; Execute</b> that dispatches the corresponding work order or setback — the same approval flow used by every other ColdOps engine." />
@@ -326,14 +314,14 @@ export function CameraScan() {
             ) : (
               <ScanResultView result={currentResult} onApprove={() => {
                 toast.success(`Recommendation approved — ${currentResult.recommendation.actionType} dispatched`)
-                // In a real system, this would trigger the work order or setback
+                
               }} />
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Batch results */}
+      {}
       {mode === 'batch' && scanResults.length > 0 && (
         <Card className="border-border/60">
           <CardHeader className="pb-2">
@@ -361,9 +349,9 @@ export function CameraScan() {
   )
 }
 
-// ============================================================================
-// SCAN RESULT VIEW — shows VLM detection + recommendation
-// ============================================================================
+
+
+
 
 function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: () => void }) {
   const c = severityColor(result.severity as any)
@@ -373,7 +361,7 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
       animate={{ opacity: 1, y: 0 }}
       className="space-y-3"
     >
-      {/* VLM detection */}
+      {}
       <div className="rounded-lg border border-border/60 p-3 bg-muted/30">
         <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">VLM Detection (Vision AI)</div>
         <div className="grid grid-cols-2 gap-2 text-xs">
@@ -401,7 +389,7 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
         )}
       </div>
 
-      {/* Matched product spec */}
+      {}
       {result.matchedProduct ? (
         <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
           <div className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide mb-1">Matched Product Spec</div>
@@ -428,7 +416,7 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
         </div>
       )}
 
-      {/* Temperature reading */}
+      {}
       {result.temperature !== null && !isNaN(result.temperature) && (
         <div className="rounded-lg border border-border/60 p-3">
           <div className="flex items-center gap-2 mb-1">
@@ -449,7 +437,7 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
         </div>
       )}
 
-      {/* Issues detected */}
+      {}
       {result.issues.length > 0 && (
         <div className={`rounded-lg border ${c.border} ${c.bg} p-3`}>
           <div className="flex items-center gap-2 mb-2">
@@ -472,7 +460,7 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
         </div>
       )}
 
-      {/* Primary recommendation + approve */}
+      {}
       <div className="rounded-lg border-2 border-primary/30 p-3 bg-primary/5">
         <div className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">System Recommendation</div>
         <div className="text-sm font-medium">{result.recommendation.recommendation}</div>
@@ -486,9 +474,9 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
   )
 }
 
-// ============================================================================
-// BATCH SCAN ROW — one row per scan in batch mode
-// ============================================================================
+
+
+
 
 function BatchScanRow({ result, rank, onClick }: { result: ScanResult; rank: number; onClick: () => void }) {
   const c = severityColor(result.severity as any)

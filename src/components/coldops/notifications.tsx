@@ -22,9 +22,9 @@ import {
 } from '@/lib/coldops/ui'
 import { SeverityTabs, ChannelIcon } from './shared'
 
-// ============================================================================
-// VIEW: NOTIFICATIONS
-// ============================================================================
+
+
+
 
 export function NotificationsView({ notifs, counts, onAction }: { notifs: Notification[]; counts: Record<string, number>; onAction: () => void }) {
   const [filter, setFilter] = useState<Severity | 'ALL'>('ALL')
@@ -77,7 +77,7 @@ export function NotificationsView({ notifs, counts, onAction }: { notifs: Notifi
         <SeverityTabs counts={counts} active={filter} onChange={setFilter} />
       </div>
 
-      {/* Type filter chips */}
+      {}
       <div className="flex items-center gap-2 flex-wrap">
         <Filter className="h-3.5 w-3.5 text-muted-foreground" />
         <Button variant={typeFilter === 'ALL' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setTypeFilter('ALL')}>All types</Button>
@@ -88,7 +88,7 @@ export function NotificationsView({ notifs, counts, onAction }: { notifs: Notifi
         ))}
       </div>
 
-      {/* List */}
+      {}
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
           {filtered.length === 0 ? (
@@ -165,15 +165,15 @@ export function NotificationsView({ notifs, counts, onAction }: { notifs: Notifi
         </AnimatePresence>
       </div>
 
-      {/* Detail Modal */}
+      {}
       <NotificationDetailModal notifId={detailId} onClose={() => setDetailId(null)} onAction={act} acting={acting} />
     </div>
   )
 }
 
-// ============================================================================
-// NOTIFICATION DETAIL MODAL
-// ============================================================================
+
+
+
 
 function NotificationDetailModal({ notifId, onClose, onAction, acting }: { notifId: string | null; onClose: () => void; onAction: (id: string, action: 'approve' | 'defer' | 'dismiss') => void; acting: string | null }) {
   const [detail, setDetail] = useState<NotificationDetail | null>(null)
@@ -220,7 +220,7 @@ function NotificationDetailModal({ notifId, onClose, onAction, acting }: { notif
         ) : (
           <ScrollArea className="flex-1 pr-2">
             <div className="space-y-4">
-              {/* Message + impact */}
+              {}
               <div className={`rounded-lg border p-3 ${severityColor(notif.severity).border} ${severityColor(notif.severity).bg}`}>
                 <div className="text-sm">{notif.message}</div>
                 <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border/40">
@@ -239,7 +239,7 @@ function NotificationDetailModal({ notifId, onClose, onAction, acting }: { notif
                 </div>
               </div>
 
-              {/* Action buttons */}
+              {}
               {notif.status === 'OPEN' && (
                 <div className="flex items-center gap-2">
                   {notif.actionType && notif.actionType !== 'NONE' && (
@@ -259,7 +259,7 @@ function NotificationDetailModal({ notifId, onClose, onAction, acting }: { notif
                 </div>
               )}
 
-              {/* Timeline */}
+              {}
               <div>
                 <div className="text-xs font-medium flex items-center gap-1.5 mb-3">
                   <History className="h-3.5 w-3.5 text-muted-foreground" />
@@ -295,7 +295,7 @@ function NotificationDetailModal({ notifId, onClose, onAction, acting }: { notif
                 </div>
               </div>
 
-              {/* Related entity summary */}
+              {}
               {detail.related && (
                 <>
                   <Separator />
@@ -346,7 +346,7 @@ function NotificationDetailModal({ notifId, onClose, onAction, acting }: { notif
                 </>
               )}
 
-              {/* Footer info */}
+              {}
               <Separator />
               <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
                 <div>ID: <span className="font-mono">{notif.id.slice(-12)}</span></div>

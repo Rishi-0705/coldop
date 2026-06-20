@@ -5,10 +5,7 @@ export const dynamic = 'force-dynamic'
 
 const BMS_BASE = 'http://localhost:3004'
 
-/**
- * Role catalog — hard-coded for the ColdOps demo (would be configurable in production).
- * Mirrors the role switcher in the UI (supervisor / technician / admin / viewer).
- */
+
 const ROLES = [
   {
     role: 'supervisor',
@@ -99,9 +96,7 @@ export async function GET() {
   }
 }
 
-/**
- * Allowed numeric updatable fields on AppConfig.
- */
+
 const UPDATABLE_FIELDS = [
   'tnbTariffRM',
   'idleThresholdPct',
@@ -154,7 +149,7 @@ export async function PUT(req: Request) {
       )
     }
 
-    // Ensure the AppConfig row exists before updating (id=1 is the singleton row).
+    
     const existing = await db.appConfig.findUnique({ where: { id: 1 } })
     if (!existing) {
       await db.appConfig.create({ data: { id: 1, ...updates } })

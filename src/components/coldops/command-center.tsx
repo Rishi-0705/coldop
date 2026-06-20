@@ -25,9 +25,9 @@ import { EsgDashboard } from './esg'
 import { ActivityFeed } from './activity-feed'
 import { TopCriticalPanel } from './top-critical'
 
-// ============================================================================
-// VIEW: COMMAND CENTER
-// ============================================================================
+
+
+
 
 export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onNeedMeter }: { dashboard: DashboardData | null; rooms: RoomWithBms[]; activeSetbacks: ActiveSetback[]; meterData: MeterData | null; onNeedMeter: () => void }) {
   if (!dashboard) return null
@@ -35,7 +35,7 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
 
   return (
     <div className="space-y-6">
-      {/* Explainer Banner */}
+      {}
       <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-4">
         <div className="grid place-items-center h-10 w-10 rounded-full bg-primary/20 text-primary flex-shrink-0 mt-0.5">
           <Zap className="h-5 w-5" />
@@ -50,7 +50,7 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
         </div>
       </div>
 
-      {/* Hero KPI strip */}
+      {}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <KpiCard
           icon={Zap}
@@ -82,12 +82,12 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
         />
       </div>
 
-      {/* Top 10 Critical Items */}
+      {}
       <TopCriticalPanel />
 
-      {/* Main grid */}
+      {}
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Live savings + ghost trend */}
+        {}
         <Card className="lg:col-span-2 border-border/60">
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between">
@@ -108,7 +108,7 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
           </CardContent>
         </Card>
 
-        {/* Active ghost loads */}
+        {}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -166,9 +166,9 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
         </Card>
       </div>
 
-      {/* Active setbacks + room status + notifications */}
+      {}
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Active setbacks */}
+        {}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -193,7 +193,7 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
           </CardContent>
         </Card>
 
-        {/* Room status grid */}
+        {}
         <Card className="lg:col-span-2 border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -227,7 +227,7 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
         </Card>
       </div>
 
-      {/* Top notifications */}
+      {}
       <div className="grid gap-4">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
@@ -274,9 +274,9 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
   )
 }
 
-// ============================================================================
-// ENERGY FORECAST WIDGET
-// ============================================================================
+
+
+
 
 function EnergyForecastWidget() {
   const [forecast, setForecast] = useState<ForecastData | null>(null)
@@ -325,7 +325,7 @@ function EnergyForecastWidget() {
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 lg:grid-cols-3">
-          {/* Cost comparison */}
+          {}
           <div className="space-y-3">
             <div className="rounded-lg border border-border/60 p-3 bg-card/60">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Without ColdOps</div>
@@ -341,7 +341,7 @@ function EnergyForecastWidget() {
             </div>
           </div>
 
-          {/* 6-month projection chart */}
+          {}
           <div className="lg:col-span-2">
             <div className="text-xs font-medium mb-2 flex items-center gap-1.5">
               <Activity className="h-3.5 w-3.5 text-muted-foreground" />
@@ -373,7 +373,7 @@ function EnergyForecastWidget() {
           </div>
         </div>
 
-        {/* Savings breakdown */}
+        {}
         <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-border/60">
           <div className="text-center">
             <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Ghost Load</div>

@@ -12,13 +12,7 @@ function daysToExpiry(expiry: Date): number {
   return Math.ceil((expiry.getTime() - Date.now()) / MS_PER_DAY)
 }
 
-/**
- * Room Detail
- *
- * Full snapshot of a single cold room: master record, live BMS state,
- * FEFO-sorted pallet inventory, recent meter readings (last 24 = 6h @ 15-min),
- * and computed stats (utilization, power, ghost-load flag, allergens, expiry range).
- */
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ roomCode: string }> },
@@ -43,7 +37,7 @@ export async function GET(
       )
     }
 
-    // Live BMS state + recent meter readings + active ghost detections, in parallel.
+    
     const [bmsRes, recentReadings, activeGhosts] = await Promise.all([
       fetch(`${BMS_BASE}/bms/rooms/${encodeURIComponent(roomCode)}`, {
         signal: AbortSignal.timeout(2500),
@@ -65,7 +59,7 @@ export async function GET(
       }
     }
 
-    // Shape pallets (FEFO order already applied by the query).
+    
     const pallets = room.pallets.map((p, idx) => ({
       id: p.id,
       lotNo: p.lotNo,
@@ -82,7 +76,7 @@ export async function GET(
       category: p.product?.category || 'Uncategorized',
     }))
 
-    // Stats
+    
     const palletCount = room.pallets.length
     const capacityPallets = room.capacityPallets
     const utilizationPct =
@@ -94,8 +88,8 @@ export async function GET(
       bms?.powerKW ??
       (recentReadings[0]?.powerKW ?? 0)
 
-    // Idle baseline: prefer the latest reading's recorded baseline, then
-    // fall back to the standard 15% of compressor max.
+    
+    
     const idleBaselineKW =
       recentReadings[0]?.idleBaselineKW && recentReadings[0].idleBaselineKW > 0
         ? recentReadings[0].idleBaselineKW
@@ -104,7 +98,7 @@ export async function GET(
     const ghostDetection = activeGhosts.find(g => g.roomId === room.id)
     const isGhostLoad = !!ghostDetection
 
-    // Allergens present in this room (distinct tags, excluding empty).
+    
     const allergenSet = new Set<string>()
     for (const p of room.pallets) {
       for (const t of (p.allergenTags || '')
@@ -116,17 +110,17 @@ export async function GET(
     }
     const allergensPresent = Array.from(allergenSet).sort()
 
-    // Earliest / latest expiry across the room's pallets.
+    
     let earliestExpiry: string | null = null
     let latestExpiry: string | null = null
     if (room.pallets.length > 0) {
-      // pallets came back ordered by expiry asc, so first = earliest, last = latest.
+      
       earliestExpiry = room.pallets[0].expiryDate.toISOString()
       latestExpiry = room.pallets[room.pallets.length - 1].expiryDate.toISOString()
     }
 
-    // Strip the relation-loaded pallets from the room object before returning
-    // (we already shaped them above; no need to duplicate the raw rows).
+    
+    
     const {
       pallets: _omitPallets,
       ...roomFields
@@ -135,7 +129,7 @@ export async function GET(
     return NextResponse.json({
       room: {
         ...roomFields,
-        // explicit field whitelist-style aliases for clarity
+        
         id: room.id,
         code: room.code,
         name: room.name,

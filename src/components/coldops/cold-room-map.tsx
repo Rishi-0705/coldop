@@ -24,9 +24,9 @@ import { roomStatusColor, formatRM, formatKW, formatTemp, timeAgo } from '@/lib/
 import { Legend, Metric } from './shared'
 import { CircularGauge } from './motion'
 
-// ============================================================================
-// VIEW: COLD ROOM MAP
-// ============================================================================
+
+
+
 
 export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms[]; plan: ConsolidationPlan | null; onExecutePlan: () => void }) {
   const [selected, setSelected] = useState<string | null>(null)
@@ -54,7 +54,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
 
   return (
     <div className="space-y-6">
-      {/* Explainer Banner */}
+      {}
       <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-start gap-4">
         <div className="grid place-items-center h-10 w-10 rounded-full bg-primary/20 text-primary flex-shrink-0 mt-0.5">
           <Package className="h-5 w-5" />
@@ -81,7 +81,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Floor plan */}
+        {}
         <Card className="lg:col-span-2 border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Live Floor Plan</CardTitle>
@@ -92,7 +92,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
           </CardContent>
         </Card>
 
-        {/* Side panel */}
+        {}
         <div className="space-y-4">
           {selectedRoom ? (
             <RoomDetailCard room={selectedRoom} onViewDetail={() => setDetailRoom(selectedRoom.code)} />
@@ -151,7 +151,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
             </Card>
           )}
 
-          {/* Move list */}
+          {}
           {plan && plan.moves.length > 0 && (
             <Card className="border-border/60">
               <CardHeader className="pb-2">
@@ -183,10 +183,10 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
         </div>
       </div>
 
-      {/* Live Temperature Gauges */}
+      {}
       <TempGaugeGrid rooms={rooms} />
 
-      {/* Room Detail Modal */}
+      {}
       <RoomDetailModal roomCode={detailRoom} onClose={() => setDetailRoom(null)} />
     </div>
   )
@@ -195,7 +195,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
 function FloorPlan({ rooms, selected, onSelect, plan }: { rooms: RoomWithBms[]; selected: string | null; onSelect: (id: string) => void; plan: ConsolidationPlan | null }) {
   return (
     <div className="relative w-full aspect-[16/8] bg-zinc-50 rounded-lg border border-border/60 overflow-hidden">
-      {/* Grid background */}
+      {}
       <svg className="absolute inset-0 w-full h-full opacity-40" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -205,7 +205,7 @@ function FloorPlan({ rooms, selected, onSelect, plan }: { rooms: RoomWithBms[]; 
         <rect width="100%" height="100%" fill="url(#grid)" />
       </svg>
 
-      {/* Rooms */}
+      {}
       {rooms.map(r => {
         const c = roomStatusColor(r.status)
         const isGhost = r.status === 'GHOST_LOAD'
@@ -257,7 +257,7 @@ function FloorPlan({ rooms, selected, onSelect, plan }: { rooms: RoomWithBms[]; 
         )
       })}
 
-      {/* Consolidation arrows overlay */}
+      {}
       {plan && (
         <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
           {plan.sourceRoomCodes.map(srcCode => {
@@ -292,7 +292,7 @@ function FloorPlan({ rooms, selected, onSelect, plan }: { rooms: RoomWithBms[]; 
         </svg>
       )}
 
-      {/* Zone labels */}
+      {}
       <div className="absolute top-1 left-2 text-[10px] font-medium text-zinc-500">Production Floor — Cold Storage Zone</div>
     </div>
   )
@@ -344,9 +344,9 @@ function RoomDetailCard({ room, onViewDetail }: { room: RoomWithBms; onViewDetai
   )
 }
 
-// ============================================================================
-// ROOM DETAIL MODAL — full pallet inventory + temp history + BMS controls
-// ============================================================================
+
+
+
 
 function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClose: () => void }) {
   const [detail, setDetail] = useState<RoomDetail | null>(null)
@@ -387,7 +387,7 @@ function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClo
         ) : (
           <ScrollArea className="flex-1 pr-2">
             <div className="space-y-4">
-              {/* BMS + Stats */}
+              {}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {detail.bms && (
                   <>
@@ -399,7 +399,7 @@ function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClo
                 )}
               </div>
 
-              {/* Temp history chart */}
+              {}
               {detail.recentReadings.length > 0 && (
                 <div>
                   <div className="text-xs font-medium mb-1.5 flex items-center gap-1.5">
@@ -430,7 +430,7 @@ function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClo
 
               <Separator />
 
-              {/* Pallet inventory */}
+              {}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs font-medium flex items-center gap-1.5">
@@ -469,7 +469,7 @@ function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClo
                 )}
               </div>
 
-              {/* Stats footer */}
+              {}
               <Separator />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <div><span className="text-muted-foreground">Allergens:</span> <span className="font-medium">{detail.stats.allergensPresent.join(', ') || 'None'}</span></div>
@@ -485,9 +485,9 @@ function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClo
   )
 }
 
-// ============================================================================
-// LIVE TEMPERATURE GAUGE GRID
-// ============================================================================
+
+
+
 
 function TempGaugeGrid({ rooms }: { rooms: RoomWithBms[] }) {
   return (

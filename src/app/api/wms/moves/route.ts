@@ -3,23 +3,20 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/wms/moves
- * Returns pallet move history (confirmed work order moves).
- */
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const limit = parseInt(searchParams.get('limit') || '50')
   const roomCode = searchParams.get('roomCode')
 
   const where: any = { confirmedAt: { not: null } }
-  // We can't filter by room code directly on WorkOrderMove, but we can filter on fromRoomCode/toRoomCode
-  // For simplicity, fetch all and filter in JS if roomCode is provided
+  
+  
 
   const moves = await db.workOrderMove.findMany({
     where,
     orderBy: { confirmedAt: 'desc' },
-    take: limit * 2, // fetch more in case we filter
+    take: limit * 2, 
     include: { workOrder: { include: { room: true } } },
   })
 
@@ -45,7 +42,7 @@ export async function GET(req: Request) {
     workOrderStatus: m.workOrder?.status,
   }))
 
-  // Stats
+  
   const totalMoves = moves.length
   const uniqueProducts = new Set(moves.map(m => m.productName)).size
   const uniqueRooms = new Set(moves.flatMap(m => [m.fromRoomCode, m.toRoomCode])).size

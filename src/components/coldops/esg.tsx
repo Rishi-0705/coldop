@@ -17,11 +17,7 @@ import type { EsgData } from '@/lib/coldops/types'
 import { formatRM, formatKW } from '@/lib/coldops/ui'
 import { CountUp, CircularGauge } from './motion'
 
-/**
- * ESG / Sustainability Dashboard — shows environmental impact metrics.
- * Designed as an investor "wow" moment: CO2 avoided, trees equivalent,
- * ESG score, SDG alignment.
- */
+
 export function EsgDashboard() {
   const [data, setData] = useState<EsgData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -48,7 +44,7 @@ export function EsgDashboard() {
 
   return (
     <div className="space-y-4">
-      {/* ESG Score Hero */}
+      {}
       <Card className="border-blue-200 bg-gradient-to-br from-blue-50/60 via-card to-sky-50/40">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -77,14 +73,14 @@ export function EsgDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* ESG Score breakdown bars */}
+          {}
           <div className="grid grid-cols-3 gap-3 mb-4">
             <ScoreBar label="Environmental" score={esgScore.breakdown.environmental} color="blue" />
             <ScoreBar label="Social" score={esgScore.breakdown.social} color="sky" />
             <ScoreBar label="Governance" score={esgScore.breakdown.governance} color="violet" />
           </div>
 
-          {/* CO2 Impact Metrics */}
+          {}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <ImpactCard
               icon={Leaf}
@@ -122,7 +118,7 @@ export function EsgDashboard() {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* CO2 Trend Chart */}
+        {}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -156,7 +152,7 @@ export function EsgDashboard() {
           </CardContent>
         </Card>
 
-        {/* UN SDG Alignment */}
+        {}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -192,7 +188,7 @@ export function EsgDashboard() {
         </Card>
       </div>
 
-      {/* Energy savings summary */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">

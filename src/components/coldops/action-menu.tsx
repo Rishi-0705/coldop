@@ -17,10 +17,10 @@ import type { Notification } from '@/lib/coldops/types'
 import { formatRM } from '@/lib/coldops/ui'
 import { GlassCard } from '@/components/coldops/shared'
 
-// ─── helpers ──────────────────────────────────────────────────────────────
+
 
 function generateImpactData(baseKW: number, savingPct: number) {
-  // Simulate a "before vs after" sparkline over 8 time slots
+  
   return Array.from({ length: 8 }, (_, i) => ({
     t: i,
     before: +(baseKW + Math.random() * 2 - 1).toFixed(1),
@@ -30,7 +30,7 @@ function generateImpactData(baseKW: number, savingPct: number) {
   }))
 }
 
-// ─── single swipeable card ─────────────────────────────────────────────────
+
 
 function ActionCard({
   notif,
@@ -53,11 +53,11 @@ function ActionCard({
   const isConsolidation = notif.type === 'CONSOLIDATION' || notif.type === 'CONSOLIDATION_SUGGESTED'
   const isTemp = !isConsolidation
 
-  // Calculate actual saving percentage from the notification's estimated RM impact
-  const baseKW = 15 // Assume average 15kW for visual chart baseline
+  
+  const baseKW = 15 
   let kwhSavedPerHour = 0
   if (notif.rmPerHour) {
-    kwhSavedPerHour = notif.rmPerHour / 0.509 // TNB_TARIFF
+    kwhSavedPerHour = notif.rmPerHour / 0.509 
   } else if (isConsolidation && notif.rmImpact > 0) {
     kwhSavedPerHour = (notif.rmImpact / (notif.durationHours || 8)) / 0.509
   }
@@ -89,7 +89,7 @@ function ActionCard({
       onDragEnd={handleDragEnd}
       className={`absolute inset-0 ${isTop ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
-      {/* Approve/Deny overlays */}
+      {}
       {isTop && (
         <>
           <motion.div
@@ -111,13 +111,13 @@ function ActionCard({
         </>
       )}
 
-      {/* Card body */}
+      {}
       <div className="h-full overflow-hidden select-none flex flex-col p-0 bg-white border border-[#E5E7EB] rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-        {/* Color bar */}
+        {}
         <div className={`h-1 w-full flex-shrink-0 ${isConsolidation ? 'bg-[#F59E0B]' : 'bg-[#0EA5E9]'}`} />
 
         <div className="p-6 h-full flex flex-col gap-4">
-          {/* Icon + type label */}
+          {}
           <div className="flex items-center gap-3">
             <div className={`h-10 w-10 rounded-[10px] flex items-center justify-center ${
               isConsolidation ? 'bg-[#FFFBEB] text-[#D97706]' : 'bg-[#EFF6FF] text-[#0EA5E9]'
@@ -147,12 +147,12 @@ function ActionCard({
             )}
           </div>
 
-          {/* AI Action Statement */}
+          {}
           <div className="rounded-xl bg-muted/40 p-4 border border-border/60">
             <p className="text-sm font-semibold leading-relaxed">{notif.message}</p>
           </div>
 
-          {/* Predictive Impact Mini-Chart */}
+          {}
           <div className="flex-1 min-h-0">
             <p className="text-[11px] text-muted-foreground font-medium mb-1 flex items-center gap-1">
               <Zap className="h-3 w-3" />
@@ -198,7 +198,7 @@ function ActionCard({
             </div>
           </div>
 
-          {/* Hint */}
+          {}
           <p className="text-[11px] text-muted-foreground text-center">
             ← Swipe left to Deny &nbsp;·&nbsp; Swipe right to Approve →
           </p>
@@ -208,7 +208,7 @@ function ActionCard({
   )
 }
 
-// ─── main view ────────────────────────────────────────────────────────────
+
 
 export function ActionMenuView({
   notifs,
@@ -264,7 +264,7 @@ export function ActionMenuView({
     toast.info('Action skipped.')
   }, [])
 
-  // Auto-pilot: step through cards with delay
+  
   useEffect(() => {
     if (!autoPilot || !current || acting) return
     const t = setTimeout(() => {
@@ -277,7 +277,7 @@ export function ActionMenuView({
 
   return (
     <div className="max-w-[860px] mx-auto space-y-8">
-      {/* Header */}
+      {}
       <div className="flex items-start justify-between gap-4 mb-2">
         <div>
           <h1 className="text-[28px] font-bold text-[#111827]">Step 2 — AI Actions</h1>
@@ -286,7 +286,7 @@ export function ActionMenuView({
           </p>
         </div>
 
-        {/* Auto-Pilot toggle */}
+        {}
         <div className="flex-shrink-0 flex items-center gap-3 bg-white border border-[#E5E7EB] rounded-[12px] px-[20px] py-[12px]">
           <div className="text-right">
             <div className="text-[13px] font-semibold text-[#111827]">Auto-Pilot</div>
@@ -301,7 +301,7 @@ export function ActionMenuView({
         </div>
       </div>
 
-      {/* Stats bar */}
+      {}
       <div className="grid grid-cols-3 gap-5">
         <div className="bg-white/60 backdrop-blur-[12px] border border-[rgba(255,255,255,0.9)] rounded-[16px] shadow-[0_4px_24px_rgba(0,0,0,0.06)] px-[32px] py-[28px] transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(0,0,0,0.10)] hover:border-white">
           <div className="text-[40px] font-[800] text-[#111827] leading-none">{queue.length}</div>
@@ -323,7 +323,7 @@ export function ActionMenuView({
         </div>
       </div>
 
-      {/* Card stack */}
+      {}
       {allDone ? (
         <div className="bg-white/60 backdrop-blur-[12px] border border-[rgba(255,255,255,0.9)] rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.06)] px-[40px] py-[64px] flex flex-col items-center text-center">
           <div className="w-[56px] h-[56px] rounded-[14px] bg-gradient-to-br from-[#ECFDF5] to-[#D1FAE5] flex items-center justify-center mb-2">
@@ -342,7 +342,7 @@ export function ActionMenuView({
         </div>
       ) : (
         <>
-          {/* Stack */}
+          {}
           <div className="relative h-[440px]">
             <AnimatePresence>
               {queue.slice(-3).map((n, idx, arr) => (
@@ -358,7 +358,7 @@ export function ActionMenuView({
             </AnimatePresence>
           </div>
 
-          {/* Button controls */}
+          {}
           <div className="flex items-center gap-3">
             <Button
               variant="outline"

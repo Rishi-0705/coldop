@@ -110,7 +110,7 @@ export function DemoTour({ onViewChange }: { onViewChange?: (v: string) => void 
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState(0)
 
-  // Auto-open on first visit
+  
   useEffect(() => {
     if (typeof window !== 'undefined' && !localStorage.getItem('coldops-tour-seen')) {
       const t = setTimeout(() => setIsOpen(true), 1500)
@@ -126,7 +126,7 @@ export function DemoTour({ onViewChange }: { onViewChange?: (v: string) => void 
   const next = () => {
     if (step < TOUR_STEPS.length - 1) {
       setStep(step + 1)
-      // Navigate to the relevant view if specified
+      
       const highlight = TOUR_STEPS[step + 1].highlight
       if (highlight && onViewChange) {
         const viewMap: Record<string, string> = {
@@ -156,7 +156,7 @@ export function DemoTour({ onViewChange }: { onViewChange?: (v: string) => void 
 
   return (
     <>
-      {/* Tour trigger button (always visible) */}
+      {}
       <Button
         variant="outline"
         size="sm"
@@ -170,7 +170,7 @@ export function DemoTour({ onViewChange }: { onViewChange?: (v: string) => void 
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
+            {}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -179,7 +179,7 @@ export function DemoTour({ onViewChange }: { onViewChange?: (v: string) => void 
               onClick={close}
             />
 
-            {/* Tour card */}
+            {}
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -188,7 +188,7 @@ export function DemoTour({ onViewChange }: { onViewChange?: (v: string) => void 
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg"
             >
               <Card className={`border-2 ${c.border} shadow-2xl overflow-hidden`}>
-                {/* Header with gradient */}
+                {}
                 <div className={`relative ${c.bg} px-5 py-4 border-b ${c.border}`}>
                   <div className="flex items-start gap-3">
                     <div className={`grid place-items-center h-11 w-11 rounded-xl bg-card ${c.icon} flex-shrink-0`}>
@@ -213,11 +213,11 @@ export function DemoTour({ onViewChange }: { onViewChange?: (v: string) => void 
                   </div>
                 </div>
 
-                {/* Content */}
+                {}
                 <CardContent className="p-5">
                   <p className="text-sm text-muted-foreground leading-relaxed">{current.description}</p>
 
-                  {/* Progress dots */}
+                  {}
                   <div className="flex items-center justify-center gap-1.5 mt-5 mb-4">
                     {TOUR_STEPS.map((_, i) => (
                       <button
@@ -230,7 +230,7 @@ export function DemoTour({ onViewChange }: { onViewChange?: (v: string) => void 
                     ))}
                   </div>
 
-                  {/* Actions */}
+                  {}
                   <div className="flex items-center justify-between">
                     <Button variant="ghost" size="sm" onClick={prev} disabled={step === 0} className="text-xs">
                       <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Previous

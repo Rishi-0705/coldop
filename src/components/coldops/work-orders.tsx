@@ -14,9 +14,9 @@ import type { WorkOrder, ActiveSetback } from '@/lib/coldops/types'
 import { formatRM, timeAgo } from '@/lib/coldops/ui'
 import { ActiveSetbackCard } from './shared'
 
-// ============================================================================
-// VIEW: WORK ORDERS
-// ============================================================================
+
+
+
 
 export function WorkOrdersView({ workOrders, activeSetbacks, onComplete }: { workOrders: WorkOrder[]; activeSetbacks: ActiveSetback[]; onComplete: () => void }) {
   const [completingId, setCompletingId] = useState<string | null>(null)
@@ -58,7 +58,7 @@ export function WorkOrdersView({ workOrders, activeSetbacks, onComplete }: { wor
         </div>
       </div>
 
-      {/* Active setbacks strip */}
+      {}
       {activeSetbacks.length > 0 && (
         <Card className="border-amber-200 bg-amber-50/50">
           <CardHeader className="pb-2">
@@ -76,7 +76,7 @@ export function WorkOrdersView({ workOrders, activeSetbacks, onComplete }: { wor
         </Card>
       )}
 
-      {/* Pending */}
+      {}
       <div>
         <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
           <Clock className="h-4 w-4" /> Pending & In Progress ({pending.length})
@@ -99,7 +99,7 @@ export function WorkOrdersView({ workOrders, activeSetbacks, onComplete }: { wor
         )}
       </div>
 
-      {/* Completed */}
+      {}
       {completed.length > 0 && (
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">

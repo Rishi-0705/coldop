@@ -10,16 +10,7 @@ function daysToExpiry(expiry: Date): number {
   return Math.ceil((expiry.getTime() - Date.now()) / MS_PER_DAY)
 }
 
-/**
- * WMS Pallet Browser
- *
- * Returns filtered + sorted pallet inventory with FEFO ranks, plus global stats
- * (category/room/allergen breakdowns, expiringSoon, quarantineCount) and filter
- * facets (rooms with counts, distinct categories, distinct allergen tags).
- *
- * Stats are computed from the FULL inventory (unfiltered) so the UI can show
- * "X of Y pallets" context; only the `pallets[]` array reflects the active filter.
- */
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
@@ -35,7 +26,7 @@ export async function GET(req: Request) {
     const limitRaw = searchParams.get('limit')
     const limit = limitRaw ? Math.max(1, Math.min(2000, Number(limitRaw))) : 500
 
-    // Build the where clause using AND-array composition so multiple filters stack.
+    
     const andClauses: Prisma.PalletWhereInput[] = []
     if (roomCode) {
       andClauses.push({ room: { code: roomCode } })
@@ -69,14 +60,14 @@ export async function GET(req: Request) {
     const where: Prisma.PalletWhereInput =
       andClauses.length > 0 ? { AND: andClauses } : {}
 
-    // Determine orderBy for the result list.
+    
     let orderBy: Prisma.PalletOrderByWithRelationInput
     if (sort === 'received') {
       orderBy = { receivedAt: 'desc' }
     } else if (sort === 'product') {
       orderBy = { productName: 'asc' }
     } else {
-      // default: expiry ascending (FEFO)
+      
       orderBy = { expiryDate: 'asc' }
     }
 
@@ -87,7 +78,7 @@ export async function GET(req: Request) {
         orderBy,
         take: limit,
       }),
-      // Global pallet set for stats (unfiltered).
+      
       db.pallet.findMany({
         include: { room: true, product: true },
       }),
@@ -97,9 +88,9 @@ export async function GET(req: Request) {
       }),
     ])
 
-    // FEFO rank: 1-based index when the filtered set is sorted by expiry asc.
-    // Computed independently of the user's chosen sort so rank always reflects
-    // pickup priority, not display order.
+    
+    
+    
     const expirySorted = [...pallets].sort(
       (a, b) => a.expiryDate.getTime() - b.expiryDate.getTime(),
     )
@@ -124,7 +115,7 @@ export async function GET(req: Request) {
       category: p.product?.category || 'Uncategorized',
     }))
 
-    // Aggregate stats from the full inventory.
+    
     const byCategory: Record<string, number> = {}
     const byRoom: Record<string, number> = {}
     const allergenBreakdown: Record<string, number> = {}
@@ -153,7 +144,7 @@ export async function GET(req: Request) {
       }
     }
 
-    // Filter facets — drive the sidebar / dropdowns in the WMS browser UI.
+    
     const roomsFilter = allRooms.map(r => ({
       code: r.code,
       name: r.name,

@@ -3,16 +3,13 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/weekly-comparison
- * Returns this week vs last week savings comparison.
- */
+
 export async function GET() {
   const savings = await db.savingsCounter.findUnique({ where: { id: 1 } })
   const config = await db.appConfig.findUnique({ where: { id: 1 } })
   const tariff = config?.tnbTariffRM || 0.509
 
-  // Get ghost load events for this week + last week
+  
   const now = new Date()
   const weekAgo = new Date(now.getTime() - 7 * 86400 * 1000)
   const twoWeeksAgo = new Date(now.getTime() - 14 * 86400 * 1000)
@@ -27,7 +24,7 @@ export async function GET() {
   const thisWeekRM = thisWeekGhosts.reduce((s, g) => s + g.rmWaste, 0)
   const lastWeekRM = lastWeekGhosts.reduce((s, g) => s + g.rmWaste, 0)
 
-  // Get setbacks for comparison
+  
   const thisWeekSetbacks = await db.setbackEvent.count({
     where: { createdAt: { gte: weekAgo }, status: 'COMPLETED' },
   })
@@ -35,7 +32,7 @@ export async function GET() {
     where: { createdAt: { gte: twoWeeksAgo, lt: weekAgo }, status: 'COMPLETED' },
   })
 
-  // Get work orders
+  
   const thisWeekWOs = await db.workOrder.count({
     where: { createdAt: { gte: weekAgo } },
   })
@@ -43,7 +40,7 @@ export async function GET() {
     where: { createdAt: { gte: twoWeeksAgo, lt: weekAgo } },
   })
 
-  // Day-by-day breakdown (simulated for last 14 days)
+  
   const dailyData = []
   for (let i = 13; i >= 0; i--) {
     const date = new Date(now.getTime() - i * 86400 * 1000)

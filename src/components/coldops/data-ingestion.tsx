@@ -69,7 +69,7 @@ function parsePreview(text: string): ParsedRow[] {
   const isNew = header.includes('stock_type') || header.includes('cooler_id')
   const rows: ParsedRow[] = []
 
-  // Aggregate by cooler code
+  
   const agg: Record<string, ParsedRow> = {}
 
   for (let i = 1; i < lines.length; i++) {
@@ -121,7 +121,7 @@ export function DataIngestionView({ rooms, onAction }: { rooms: RoomWithBms[]; o
     setWmsLoading(true)
     setPreview([])
 
-    // Parse locally for instant preview
+    
     const text = await file.text()
     const parsed = parsePreview(text)
     setPreview(parsed)
@@ -156,7 +156,7 @@ export function DataIngestionView({ rooms, onAction }: { rooms: RoomWithBms[]; o
     <div>
       <div className="max-w-[720px] mx-auto space-y-6 px-6">
         
-        {/* Header */}
+        {}
         <div className="mb-8">
           <h1 className="text-[28px] font-bold text-[#111827]">Step 1 — Configure</h1>
           <p className="text-[14px] text-[#6B7280] max-w-[520px] leading-[1.6] mt-2">
@@ -165,7 +165,7 @@ export function DataIngestionView({ rooms, onAction }: { rooms: RoomWithBms[]; o
           </p>
         </div>
 
-        {/* Section A: Company Schedule */}
+        {}
         <GlassCard className="p-[28px] sm:px-[32px] space-y-6">
           <div className="flex items-start gap-4">
             <div className="h-[36px] w-[36px] rounded-[10px] bg-[#EFF6FF] text-[#0EA5E9] flex items-center justify-center flex-shrink-0">
@@ -199,7 +199,7 @@ export function DataIngestionView({ rooms, onAction }: { rooms: RoomWithBms[]; o
           </div>
         </GlassCard>
 
-        {/* Section B: WMS Upload */}
+        {}
         <GlassCard className="p-[28px] sm:px-[32px] space-y-6">
           <div className="flex items-start gap-4">
             <div className="h-[36px] w-[36px] rounded-[10px] bg-[#EFF6FF] text-[#0EA5E9] flex items-center justify-center flex-shrink-0">
@@ -214,7 +214,7 @@ export function DataIngestionView({ rooms, onAction }: { rooms: RoomWithBms[]; o
             </div>
           </div>
 
-          {/* Format spec */}
+          {}
           <div className="bg-[#F9FAFB] rounded-[10px] p-[16px] text-[12px] font-mono border border-[#E5E7EB]">
             <table className="w-full text-left">
               <thead>
@@ -277,7 +277,7 @@ export function DataIngestionView({ rooms, onAction }: { rooms: RoomWithBms[]; o
             </div>
           )}
 
-          {/* Parsed preview table */}
+          {}
           {preview.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-[13px] font-semibold text-[#111827]">
@@ -319,7 +319,7 @@ export function DataIngestionView({ rooms, onAction }: { rooms: RoomWithBms[]; o
         </GlassCard>
       </div>
 
-      {/* Bottom CTA bar */}
+      {}
       <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-white/50 py-[20px] px-[32px] z-30 shadow-[0_-4px_32px_rgba(0,0,0,0.08)]">
         <div className="max-w-[720px] mx-auto flex items-center justify-between gap-4">
           <div>

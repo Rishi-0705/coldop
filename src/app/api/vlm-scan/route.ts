@@ -5,15 +5,7 @@ import { broadcast } from '@/lib/realtime/client'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * POST /api/vlm-scan
- * Accepts a base64 image from the camera, sends it to the VLM (z-ai vision model)
- * for product identification + amount counting, then analyzes the result against
- * product specs to generate a recommendation.
- *
- * Body: { image: "data:image/jpeg;base64,...", manualTemp?: number, roomCode?: string }
- * Returns: { vlmResult, matchedProduct, analysis, recommendation }
- */
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
@@ -23,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Image required' }, { status: 400 })
     }
 
-    // === Step 1: Send to VLM for product identification ===
+    
     const ZAI = (await import('z-ai-web-dev-sdk')).default
     const zai = await ZAI.create()
 
@@ -53,7 +45,7 @@ Return your response as JSON ONLY (no markdown, no code blocks):
 
     const rawContent = vlmResponse.choices[0]?.message?.content || ''
 
-    // Parse VLM JSON response (handle markdown code blocks)
+    
     let vlmResult: any = null
     try {
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/)
@@ -69,19 +61,19 @@ Return your response as JSON ONLY (no markdown, no code blocks):
       }
     }
 
-    // === Step 2: Fuzzy-match against product catalog ===
+    
     const catalog = await db.productSpec.findMany()
     let matchedProduct = null
     let isUnknown = true
 
     if (vlmResult.productName) {
       const vlmName = vlmResult.productName.toLowerCase()
-      // Exact match first
+      
       matchedProduct = catalog.find(p =>
         p.productName.toLowerCase() === vlmName ||
         p.productCode.toLowerCase() === vlmName
       )
-      // Partial match
+      
       if (!matchedProduct) {
         matchedProduct = catalog.find(p =>
           p.productName.toLowerCase().includes(vlmName) ||
@@ -92,14 +84,14 @@ Return your response as JSON ONLY (no markdown, no code blocks):
       if (matchedProduct) isUnknown = false
     }
 
-    // === Step 3: Analyze and generate recommendation ===
+    
     const temperature = manualTemp !== undefined ? parseFloat(manualTemp) : vlmResult.temperatureReading
     const productSpec = matchedProduct
     const count = vlmResult.estimatedCount || 1
 
     const issues: any[] = []
 
-    // Check temperature compliance
+    
     if (productSpec && temperature !== null && !isNaN(temperature)) {
       if (temperature > productSpec.maxTemp) {
         issues.push({
@@ -120,7 +112,7 @@ Return your response as JSON ONLY (no markdown, no code blocks):
       }
     }
 
-    // Check amount for consolidation
+    
     if (count > 0 && count < 5) {
       issues.push({
         type: 'LOW_STOCK',
@@ -131,7 +123,7 @@ Return your response as JSON ONLY (no markdown, no code blocks):
       })
     }
 
-    // Check expiry if visible text contains date info
+    
     if (vlmResult.visibleText && productSpec) {
       const dateMatch = vlmResult.visibleText.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/)
       if (dateMatch) {
@@ -159,7 +151,7 @@ Return your response as JSON ONLY (no markdown, no code blocks):
       }
     }
 
-    // Unknown product
+    
     if (isUnknown) {
       issues.push({
         type: 'UNKNOWN_PRODUCT',
@@ -170,17 +162,17 @@ Return your response as JSON ONLY (no markdown, no code blocks):
       })
     }
 
-    // Calculate overall severity score
+    
     const roomZone = roomCode ? (await db.coldRoom.findUnique({ where: { code: roomCode } }))?.zone : 'Chilled'
     const severityInput = {
-      rmWaste: issues.length * 9.18, // estimated RM impact
+      rmWaste: issues.length * 9.18, 
       durationHours: issues.filter(i => i.severity === 'CRITICAL').length * 3,
       safetyRisk: issues.filter(i => i.type.includes('TEMP') || i.type.includes('EXPIRY')).length * 25,
       roomCriticality: roomCriticality(roomZone || 'Chilled'),
     }
     const { score, bucket } = severityScore(severityInput)
 
-    // Build the scan result
+    
     const scanResult = {
       id: `SCAN-${Date.now()}`,
       timestamp: new Date().toISOString(),
@@ -201,7 +193,7 @@ Return your response as JSON ONLY (no markdown, no code blocks):
       severityScore: score,
       severity: bucket,
       roomCode: roomCode || null,
-      // Primary recommendation (highest severity issue)
+      
       recommendation: issues.length > 0 ? issues.sort((a, b) => {
         const order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
         return order[a.severity as keyof typeof order] - order[b.severity as keyof typeof order]
@@ -214,7 +206,7 @@ Return your response as JSON ONLY (no markdown, no code blocks):
       },
     }
 
-    // === Step 4: Create a notification + log entry ===
+    
     if (issues.length > 0) {
       const notif = await db.notification.create({
         data: {

@@ -13,15 +13,12 @@ import { toast } from 'sonner'
 import { formatRM, severityColor } from '@/lib/coldops/ui'
 import type { Notification } from '@/lib/coldops/types'
 
-/**
- * Quick Actions floating panel — shows the top critical notification
- * with a one-tap approve button. Collapsible.
- */
+
 export function QuickActions({ notifs, onAction }: { notifs: Notification[]; onAction: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const [acting, setActing] = useState<string | null>(null)
 
-  // Get top open notifications (severity-sorted)
+  
   const openNotifs = notifs
     .filter(n => n.status === 'OPEN' && n.actionType && n.actionType !== 'NONE')
     .slice(0, 3)
@@ -50,7 +47,7 @@ export function QuickActions({ notifs, onAction }: { notifs: Notification[]; onA
     }
   }
 
-  // Don't render if no open notifications
+  
   if (openNotifs.length === 0) return null
 
   return (
@@ -65,7 +62,7 @@ export function QuickActions({ notifs, onAction }: { notifs: Notification[]; onA
             transition={{ duration: 0.2 }}
             className="rounded-xl border border-border/60 bg-card shadow-xl overflow-hidden"
           >
-            {/* Header */}
+            {}
             <div className="flex items-center justify-between p-3 border-b border-border/60 bg-muted/30">
               <div className="flex items-center gap-2">
                 <div className="relative">
@@ -82,7 +79,7 @@ export function QuickActions({ notifs, onAction }: { notifs: Notification[]; onA
               </Button>
             </div>
 
-            {/* Notification list */}
+            {}
             <div className="max-h-[400px] overflow-y-auto p-2 space-y-1.5">
               {openNotifs.map(n => {
                 const c = severityColor(n.severity)
@@ -136,7 +133,7 @@ export function QuickActions({ notifs, onAction }: { notifs: Notification[]; onA
               })}
             </div>
 
-            {/* Footer */}
+            {}
             <div className="p-2 border-t border-border/60 bg-muted/30 text-[9px] text-muted-foreground text-center">
               One-tap approve triggers automated setback via BMS API
             </div>

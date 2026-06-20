@@ -4,11 +4,7 @@ import { startSetback, getActiveSetbacks } from '@/lib/coldops/setback'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * POST /api/setback/start
- * Body: { roomId, endSetpoint, reason }
- * Kicks off a progressive setback ramp.
- */
+
 export async function POST(req: Request) {
   const body = await req.json()
   const { roomId, endSetpoint, reason } = body

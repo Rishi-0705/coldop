@@ -85,7 +85,7 @@ export function TopCriticalPanel() {
           </div>
         ) : (
           <>
-            {/* Stats bar */}
+            {}
             {stats && (
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">
@@ -122,19 +122,19 @@ export function TopCriticalPanel() {
                         transition={{ duration: 0.2, delay: i * 0.03 }}
                         className={`flex items-center gap-3 rounded-lg border ${c.border} ${c.bg} p-2.5 hover:shadow-sm transition-shadow cursor-pointer`}
                       >
-                        {/* Rank */}
+                        {}
                         <span className={`grid place-items-center h-7 w-7 rounded-full text-[10px] font-bold flex-shrink-0 ${
                           i === 0 ? 'bg-red-500 text-white' : i === 1 ? 'bg-orange-500 text-white' : i === 2 ? 'bg-amber-400 text-white' : 'bg-muted text-muted-foreground'
                         }`}>
                           {i + 1}
                         </span>
 
-                        {/* Icon */}
+                        {}
                         <div className={`grid place-items-center h-7 w-7 rounded-lg bg-card/80 ${c.text} flex-shrink-0`}>
                           <Icon className="h-3.5 w-3.5" />
                         </div>
 
-                        {/* Content */}
+                        {}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-0.5">
                             <span className="font-medium text-xs truncate">{item.title}</span>
@@ -144,7 +144,7 @@ export function TopCriticalPanel() {
                           <div className="text-[10px] text-muted-foreground truncate">{item.description}</div>
                         </div>
 
-                        {/* Impact */}
+                        {}
                         <div className="text-right flex-shrink-0">
                           {item.rmImpact > 0 && (
                             <>

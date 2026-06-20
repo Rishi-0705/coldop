@@ -4,21 +4,11 @@ import { detectActiveGhostLoads, getRoomUtilization, severityScore, roomCritical
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/top-critical
- * Returns the top 10 most critical items across ALL categories:
- *  - Active ghost loads
- *  - Consolidation opportunities
- *  - Temperature violations (from camera scans / notifications)
- *  - FEFO/expiry warnings
- *  - Active setbacks
- *
- * All items normalized to: { id, category, severity, severityScore, title, description, roomCode, rmImpact, actionType, timestamp }
- */
+
 export async function GET() {
   const items: any[] = []
 
-  // 1. Active ghost loads
+  
   const ghosts = await detectActiveGhostLoads()
   for (const g of ghosts) {
     items.push({
@@ -37,7 +27,7 @@ export async function GET() {
     })
   }
 
-  // 2. Consolidation opportunities
+  
   const utils = await getRoomUtilization()
   const consolidationCandidates = utils.filter(u => u.status === 'CONSOLIDATION')
   if (consolidationCandidates.length >= 2) {
@@ -65,7 +55,7 @@ export async function GET() {
     })
   }
 
-  // 3. Open notifications (temperature violations, FEFO, etc.)
+  
   const notifs = await db.notification.findMany({
     where: { status: 'OPEN', severity: { in: ['CRITICAL', 'HIGH'] } },
     orderBy: { severityScore: 'desc' },
@@ -73,7 +63,7 @@ export async function GET() {
     include: { room: true },
   })
   for (const n of notifs) {
-    // Skip if already captured above
+    
     if (n.type === 'GHOST_LOAD' && ghosts.find(g => g.roomCode === n.room?.code)) continue
     items.push({
       id: `notif-${n.id}`,
@@ -91,7 +81,7 @@ export async function GET() {
     })
   }
 
-  // 4. Active setbacks
+  
   const activeSetbacks = await db.setbackEvent.findMany({
     where: { status: 'EXECUTING' },
     include: { room: true },
@@ -113,11 +103,11 @@ export async function GET() {
     })
   }
 
-  // Sort by severity score descending, take top 10
+  
   items.sort((a, b) => b.severityScore - a.severityScore)
   const top10 = items.slice(0, 10)
 
-  // Stats
+  
   const stats = {
     total: items.length,
     critical: items.filter(i => i.severity === 'CRITICAL').length,

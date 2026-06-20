@@ -21,9 +21,9 @@ import type { AnalyticsData, MeterData, SetbackHistoryItem, MultiZoneData, RoomC
 import { formatRM, timeAgo } from '@/lib/coldops/ui'
 import { RoiCard } from './shared'
 
-// ============================================================================
-// VIEW: ANALYTICS
-// ============================================================================
+
+
+
 
 export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh }: {
   analytics: AnalyticsData | null
@@ -70,7 +70,7 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
         </div>
       </div>
 
-      {/* ROI hero cards */}
+      {}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <RoiCard icon={DollarSign} label="Monthly Savings" value={formatRM(roi.monthlySavings)} sub="Current period" tone="optimized" />
         <RoiCard icon={Target} label="Payback Period" value={roi.roiMonths < 1 ? '< 1 month' : `${roi.roiMonths} months`} sub={`SaaS cost: ${formatRM(roi.saasMonthlyCost)}/mo`} tone="active" />
@@ -78,7 +78,7 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
         <RoiCard icon={Leaf} label="Annual CO₂ Avoided" value={`${(analytics.trend.reduce((s, d) => s + d.co2, 0) * 12 / 30).toFixed(1)} t`} sub="vs TNB grid factor" tone="active" />
       </div>
 
-      {/* Ghost load heatmap */}
+      {}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -93,7 +93,7 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* 30-day savings trend */}
+        {}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -107,7 +107,7 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
           </CardContent>
         </Card>
 
-        {/* Energy mix by zone */}
+        {}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -122,13 +122,13 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
         </Card>
       </div>
 
-      {/* Multi-zone 24h comparison */}
+      {}
       <MultiZoneComparison />
 
-      {/* Room Comparison Radar Chart */}
+      {}
       <RoomComparisonRadar />
 
-      {/* Top ghost load rooms + Setback history */}
+      {}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
@@ -161,7 +161,7 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
           </CardContent>
         </Card>
 
-        {/* Setback history */}
+        {}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -210,7 +210,7 @@ function GhostLoadHeatmap({ data }: { data: AnalyticsData['heatmap'] }) {
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[700px]">
-        {/* Hour labels */}
+        {}
         <div className="flex gap-0.5 mb-1 ml-[120px]">
           {Array.from({ length: 24 }, (_, h) => (
             <div key={h} className="flex-1 text-center text-[8px] text-muted-foreground font-mono">
@@ -218,7 +218,7 @@ function GhostLoadHeatmap({ data }: { data: AnalyticsData['heatmap'] }) {
             </div>
           ))}
         </div>
-        {/* Room rows */}
+        {}
         <div className="space-y-0.5">
           {data.map(room => (
             <div key={room.roomCode} className="flex items-center gap-1">
@@ -259,7 +259,7 @@ function GhostLoadHeatmap({ data }: { data: AnalyticsData['heatmap'] }) {
             </div>
           ))}
         </div>
-        {/* Legend */}
+        {}
         <div className="flex items-center gap-4 mt-3 ml-[120px] text-[10px] text-muted-foreground">
           <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.7)' }} /> Ghost Load</div>
           <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(14, 165, 233, 0.4)' }} /> Production</div>
@@ -313,9 +313,9 @@ function EnergyMixChart({ data }: { data: AnalyticsData['energyMix'] }) {
   )
 }
 
-// ============================================================================
-// MULTI-ZONE 24H COMPARISON CHART
-// ============================================================================
+
+
+
 
 function MultiZoneComparison() {
   const [data, setData] = useState<MultiZoneData | null>(null)
@@ -327,7 +327,7 @@ function MultiZoneComparison() {
       .then(r => r.json())
       .then(d => {
         setData(d)
-        // Show all rooms by default except CR-03/CR-04 (blast freezers have different scale)
+        
         setVisibleRooms(new Set(d.rooms.map((r: any) => r.code)))
       })
       .catch(e => console.error('multi-zone fetch failed', e))
@@ -344,7 +344,7 @@ function MultiZoneComparison() {
     )
   }
 
-  // Transform for Recharts: [{ hour: 0, 'CR-01': 12.5, 'CR-02': 13.2, ... }]
+  
   const chartData = data.hours.map(h => {
     const row: any = { hour: h.label }
     for (const room of data.rooms) {
@@ -381,7 +381,7 @@ function MultiZoneComparison() {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Room toggle chips */}
+        {}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {data.rooms.map(r => (
             <button
@@ -400,7 +400,7 @@ function MultiZoneComparison() {
           ))}
         </div>
 
-        {/* Multi-line chart */}
+        {}
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
@@ -424,7 +424,7 @@ function MultiZoneComparison() {
           </LineChart>
         </ResponsiveContainer>
 
-        {/* Legend with current values */}
+        {}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-border/60">
           {data.rooms.filter(r => visibleRooms.has(r.code)).map(r => {
             const currentKW = r.data[r.data.length - 1]?.kw || 0
@@ -445,9 +445,9 @@ function MultiZoneComparison() {
   )
 }
 
-// ============================================================================
-// ROOM COMPARISON RADAR CHART
-// ============================================================================
+
+
+
 
 function RoomComparisonRadar() {
   const [data, setData] = useState<RoomComparisonData | null>(null)
@@ -459,7 +459,7 @@ function RoomComparisonRadar() {
       .then(r => r.json())
       .then(d => {
         setData(d)
-        // Show first 4 rooms by default
+        
         setVisibleRooms(new Set(d.rooms.slice(0, 4).map((r: any) => r.code)))
       })
       .catch(e => console.error('room comparison fetch failed', e))
@@ -476,7 +476,7 @@ function RoomComparisonRadar() {
     )
   }
 
-  // Transform for Recharts radar: [{ axis: 'Temp Compliance', 'CR-01': 96, 'CR-02': 99, ... }]
+  
   const chartData = data.axes.map(axis => {
     const row: any = { axis: axis.label }
     for (const room of data.rooms) {
@@ -515,7 +515,7 @@ function RoomComparisonRadar() {
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 lg:grid-cols-2">
-          {/* Radar chart */}
+          {}
           <div>
             <ResponsiveContainer width="100%" height={320}>
               <RadarChart data={chartData} margin={{ top: 16, right: 16, left: 16, bottom: 16 }}>
@@ -542,9 +542,9 @@ function RoomComparisonRadar() {
             </ResponsiveContainer>
           </div>
 
-          {/* Room toggle + details */}
+          {}
           <div className="space-y-3">
-            {/* Toggle chips */}
+            {}
             <div className="flex flex-wrap gap-1.5">
               {data.rooms.map(r => (
                 <button
@@ -563,7 +563,7 @@ function RoomComparisonRadar() {
               ))}
             </div>
 
-            {/* Selected rooms detail table */}
+            {}
             <div className="space-y-1.5 max-h-[260px] overflow-y-auto">
               {visibleRoomsData.map(r => (
                 <div key={r.code} className="rounded-md border border-border/60 p-2 text-xs">
@@ -594,7 +594,7 @@ function RoomComparisonRadar() {
 }
 
 function MetricCell({ label, value, invert }: { label: string; value: number; invert: boolean }) {
-  // invert=true means lower is better (red high), invert=false means higher is better (green high)
+  
   const color = invert
     ? value > 66 ? 'text-red-600' : value > 33 ? 'text-amber-600' : 'text-blue-600'
     : value > 66 ? 'text-blue-600' : value > 33 ? 'text-amber-600' : 'text-red-600'

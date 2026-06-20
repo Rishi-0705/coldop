@@ -24,7 +24,7 @@ async function handleAction(params: { id: string; action: 'APPROVE' | 'DEFER' | 
 
   let sideEffect: any = null
 
-  // ── GHOST_LOAD: trigger a real progressive setback via BMS ────────────────
+  
   if (params.action === 'APPROVE' && notif.actionType === 'APPROVE_SETBACK' && notif.roomId) {
     const room = notif.room
     if (room) {
@@ -37,7 +37,7 @@ async function handleAction(params: { id: string; action: 'APPROVE' | 'DEFER' | 
         })
         sideEffect = { type: 'SETBACK_STARTED', setbackId: result.setbackId, endSetpoint }
 
-        // Update savings: estimate based on rmImpact from notification
+        
         const estSavingRM = notif.rmImpact > 0 ? notif.rmImpact : (notif.rmPerHour * 6)
         const estKwh = estSavingRM / TNB_TARIFF
         const estCo2 = (estKwh * CO2_PER_KWH_KG) / 1000
@@ -68,7 +68,7 @@ async function handleAction(params: { id: string; action: 'APPROVE' | 'DEFER' | 
     }
   }
 
-  // ── CONSOLIDATION: generate a real work order with actual pallet moves ─────
+  
   if (
     params.action === 'APPROVE' &&
     (notif.actionType === 'APPROVE_CONSOLIDATION' || notif.actionType === 'GENERATE_WORK_ORDER') &&
@@ -77,7 +77,7 @@ async function handleAction(params: { id: string; action: 'APPROVE' | 'DEFER' | 
     try {
       const plan = await planConsolidation()
       if (plan && plan.moves.length > 0) {
-        // Create the work order
+        
         const wo = await db.workOrder.create({
           data: {
             type: 'CONSOLIDATION',
@@ -91,7 +91,7 @@ async function handleAction(params: { id: string; action: 'APPROVE' | 'DEFER' | 
           },
         })
 
-        // Create individual move records
+        
         await db.workOrderMove.createMany({
           data: plan.moves.map(m => ({
             workOrderId: wo.id,
@@ -108,7 +108,7 @@ async function handleAction(params: { id: string; action: 'APPROVE' | 'DEFER' | 
           })),
         })
 
-        // Accumulate savings into the counter
+        
         const estKwh = plan.energySavingRM / TNB_TARIFF
         const estCo2 = (estKwh * CO2_PER_KWH_KG) / 1000
         await db.savingsCounter.upsert({

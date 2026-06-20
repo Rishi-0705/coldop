@@ -1,7 +1,4 @@
-/**
- * Realtime hub client — pushes events to the Socket.io hub on port 3003.
- * Server-side only.
- */
+
 const HUB_BASE = 'http://localhost:3003'
 
 export type RealtimeEvent =

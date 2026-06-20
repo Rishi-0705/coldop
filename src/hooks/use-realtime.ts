@@ -1,7 +1,4 @@
-/**
- * Socket.io client hook for ColdOps real-time events.
- * Connects via the gateway with XTransformPort=3003.
- */
+
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -62,7 +59,7 @@ export function useRealtimeConnection() {
     const onDisc = () => setConnected(false)
     socket.on('connect', onConn)
     socket.on('disconnect', onDisc)
-    // Use a microtask to avoid the synchronous-setState-in-effect lint rule
+    
     if (socket.connected) {
       Promise.resolve().then(() => setConnected(true))
     }
@@ -74,10 +71,7 @@ export function useRealtimeConnection() {
   return connected
 }
 
-/**
- * Broadcast helper for client-side testing (rarely used; the server is normally the producer).
- * Calls the realtime hub directly via the gateway.
- */
+
 export async function pushEvent(event: ColdOpsEvent, payload: any) {
   await fetch('/broadcast?XTransformPort=3003', {
     method: 'POST',

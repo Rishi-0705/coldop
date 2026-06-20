@@ -1,12 +1,5 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import fs from 'fs'
-
-const execAsync = promisify(exec)
 
 export async function POST(req: Request) {
   try {
@@ -19,40 +12,27 @@ export async function POST(req: Request) {
     const room = await db.coldRoom.findFirst({ where: { code: roomCode } })
     if (!room) return NextResponse.json({ ok: false, error: 'Room not found' }, { status: 404 })
 
-    // Save the uploaded image temporarily
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
     
-    // Create uploads dir if not exists
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-    if (!fs.existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-    
-    const tmpPath = path.join(uploadsDir, `scan_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`)
-    await writeFile(tmpPath, buffer)
+    const formData = new FormData()
+    formData.append('file', file)
 
-    // Call the Python ML script
-    const scriptPath = path.join(process.cwd(), 'scripts', 'analyze_cooler.py')
     
-    // Windows execution of python
-    const { stdout, stderr } = await execAsync(`python "${scriptPath}" "${tmpPath}"`)
-    
-    let result
-    try {
-      result = JSON.parse(stdout.trim())
-    } catch (e) {
-      console.error('Failed to parse Python output:', stdout, stderr)
+    const pythonBackendUrl = process.env.PYTHON_BACKEND_URL || 'http://localhost:8000'
+    const backendResponse = await fetch(`${pythonBackendUrl}/analyze`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text()
+      console.error('Python backend error:', errorText)
       return NextResponse.json({ ok: false, error: 'Computer Vision analysis failed' }, { status: 500 })
     }
 
-    if (result.error) {
-      return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
-    }
-
+    const result = await backendResponse.json()
     const detectedPallets = result.count
 
-    // Always create a notification so the user sees the output during testing
+    
     await db.notification.create({
       data: {
         type: 'GHOST_LOAD',
@@ -60,7 +40,7 @@ export async function POST(req: Request) {
         title: `Camera Scan Anomaly: ${roomCode}`,
         message: `Computer Vision detected only ${detectedPallets} pallets, but BMS reports compressor running high. Ghost load confirmed. Recommend progressive setback.`,
         roomId: room.id,
-        rmImpact: 25.50, // simulated impact
+        rmImpact: 25.50, 
       }
     })
 

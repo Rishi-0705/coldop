@@ -95,7 +95,7 @@ const TiltCard = ({ children, className = '' }: { children: React.ReactNode, cla
   );
 }
 
-// Custom Glass Card utility
+
 const GlassCard = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
   <div className={`bg-white/80 backdrop-blur-xl border border-white/50 rounded-[20px] shadow-sm hover:-translate-y-1 hover:shadow-md hover:bg-white/90 transition-all duration-300 ${className}`}>
     {children}
@@ -144,7 +144,7 @@ export default function LandingPage() {
         .animate-slide-dot { animation: slide-dot 3s infinite linear; }
       `}} />
       
-      {/* SECTION 1 - Navbar */}
+      {}
       <header 
         className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-in-out ${
           isNavVisible ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0 pointer-events-none'
@@ -152,13 +152,13 @@ export default function LandingPage() {
       >
         <div className="bg-white/80 backdrop-blur-[16px] border border-[rgba(255,255,255,0.9)] rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] px-3 h-[52px] flex items-center gap-4">
           
-          {/* Brand */}
+          {}
           <div className="flex items-center gap-1 flex-shrink-0 pl-3">
             <span className="text-[14px] font-[800] text-[#111827]">Cold</span>
             <span className="text-[14px] font-[800] text-[#0EA5E9]">Ops</span>
           </div>
 
-          {/* Stepper Links */}
+          {}
           <nav className="hidden md:flex items-center gap-1">
             {[
               { label: 'Home', href: '/' },
@@ -183,16 +183,16 @@ export default function LandingPage() {
             })}
           </nav>
           
-          {/* Right Icon - linking to app */}
+          {}
           <Link href="/configure" className="relative flex items-center justify-center h-9 w-9 rounded-full bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280] transition-colors flex-shrink-0 ml-1">
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </header>
 
-      {/* SECTION 2 - Hero */}
+      {}
       <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
-        {/* Left Column - Content */}
+        {}
         <div className="flex-1 text-left flex flex-col items-start w-full">
           <h1 className="text-[56px] lg:text-[64px] font-[800] text-[#111827] leading-[1.1] max-w-[600px] mb-6 tracking-tight">
             Stop paying for cold air <span className="text-[#0EA5E9]">nobody needs.</span>
@@ -213,7 +213,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Right Column - Visual */}
+        {}
         <div className="flex-1 w-full lg:max-w-lg relative animate-float">
           <TiltCard>
             <GlassCard className="p-6 lg:p-8">
@@ -261,7 +261,7 @@ export default function LandingPage() {
               </div>
             </div>
             
-            {/* Sparkline mockup */}
+            {}
             <div className="h-24 bg-gray-50/50 rounded-lg flex items-end px-2 pb-2 gap-1 overflow-hidden opacity-90 border border-gray-100/50">
               {[...Array(30)].map((_, i) => (
                 <div key={i} className="flex-1 bg-gradient-to-t from-[#0EA5E9] to-[#38BDF8] rounded-t-sm transition-all duration-500 hover:opacity-100" style={{ height: `${Math.max(20, Math.sin(i * 0.3) * 40 + 50)}%`, opacity: i > 20 ? 0.4 : 0.8 }} />
@@ -272,7 +272,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SECTION 2.5 - Manual and Steps */}
+      {}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
         <FadeIn>
           <div className="text-center mb-10">
@@ -297,13 +297,13 @@ export default function LandingPage() {
         </FadeIn>
       </section>
 
-      {/* SECTION 3 - Scrolling Logo Bar */}
+      {}
       <section className="py-12 border-y border-gray-200/50 bg-white/30 backdrop-blur-sm overflow-hidden">
         <FadeIn>
         <div className="text-center text-[12px] text-[#9CA3AF] mb-6">Powering smarter operations at</div>
         <div className="flex w-full overflow-hidden relative">
           <div className="flex whitespace-nowrap animate-marquee gap-6 px-6">
-            {/* Duplicate list for infinite scroll effect */}
+            {}
             {['Dairy Processing', 'Cold Chain Logistics', 'Juice Manufacturing', 'Blast Freezer Facilities', 'Chilled Storage', 'Food Distribution', 'Marigold', 'Frozen Food Plants', 'Dairy Processing', 'Cold Chain Logistics', 'Juice Manufacturing', 'Blast Freezer Facilities', 'Chilled Storage', 'Food Distribution', 'Marigold', 'Frozen Food Plants'].map((item, idx) => (
               <div key={idx} className="bg-white border border-[#E5E7EB] rounded-full px-[16px] py-[6px] text-[13px] text-[#6B7280] shadow-sm whitespace-nowrap">
                 {item}
@@ -318,7 +318,7 @@ export default function LandingPage() {
         </FadeIn>
       </section>
 
-      {/* SECTION 4 - Stats Row */}
+      {}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -347,7 +347,7 @@ export default function LandingPage() {
         </FadeIn>
       </section>
 
-      {/* SECTION 5 - How It Works */}
+      {}
       <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-20">
         <FadeIn>
         <div className="text-center mb-16">
@@ -356,7 +356,7 @@ export default function LandingPage() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {/* Desktop connecting lines */}
+          {}
           <div className="hidden md:block absolute top-1/2 left-[15%] right-[15%] h-px bg-[#E2E8F0] -z-10">
             <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#0EA5E9] animate-slide-dot shadow-[0_0_8px_#0EA5E9]" />
           </div>
@@ -397,7 +397,7 @@ export default function LandingPage() {
         </FadeIn>
       </section>
 
-      {/* SECTION 6 - Features */}
+      {}
       <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
         <div className="text-center mb-16">
@@ -457,7 +457,7 @@ export default function LandingPage() {
         </FadeIn>
       </section>
 
-      {/* SECTION 7 - Savings Calculator */}
+      {}
       <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
         <div className="bg-[rgba(14,165,233,0.05)] border border-[rgba(14,165,233,0.15)] rounded-[24px] p-8 md:p-12 flex flex-col lg:flex-row items-center gap-12 backdrop-blur-[12px] shadow-lg shadow-sky-900/5">
@@ -485,7 +485,7 @@ export default function LandingPage() {
         </FadeIn>
       </section>
 
-      {/* SECTION 8 - CTA Banner */}
+      {}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
         <div className="rounded-[24px] p-12 md:p-16 text-center" style={{ background: 'linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%)' }}>
@@ -502,7 +502,7 @@ export default function LandingPage() {
         </FadeIn>
       </section>
 
-      {/* SECTION 9 - Footer */}
+      {}
       <footer className="bg-white border-t border-[#E5E7EB] px-[32px] py-[32px] mt-12">
         <div className="max-w-7xl mx-auto flex flex-col items-center justify-center gap-4 text-[12px] text-[#9CA3AF]">
           <div className="flex items-center gap-2">

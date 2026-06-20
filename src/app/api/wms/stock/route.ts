@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     take: 500,
   })
 
-  // Group by room for floor map convenience
+  
   const byRoom: Record<string, any[]> = {}
   for (const p of pallets) {
     if (!byRoom[p.room.code]) byRoom[p.room.code] = []

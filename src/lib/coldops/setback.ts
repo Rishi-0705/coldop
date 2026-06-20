@@ -1,15 +1,4 @@
-/**
- * Progressive Setback Engine
- *
- * On approval, schedules a ramp of setpoint changes (T+0/4s/8s/12s compressed for demo).
- * Each step:
- *   1. POST /bms/rooms/:code/setpoint { setpoint, requestId }
- *   2. After 1s, GET /bms/rooms/:code/setpoint/confirm?requestId=
- *   3. Record the step result, broadcast progress via realtime hub
- *   4. If temp drifts outside safe range, ABORT and revert to start setpoint.
- *
- * Uses setTimeout for the ramp (in-process — survives across requests but not restarts).
- */
+
 import { db } from '@/lib/db'
 import { bmsWriteSetpoint, bmsConfirmSetpoint, type BmsRoomState } from '@/lib/bms/client'
 import { broadcast } from '@/lib/realtime/client'
@@ -27,7 +16,7 @@ interface ActiveSetback {
   aborted: boolean
 }
 
-// In-memory active setback tracker (singleton across hot reloads)
+
 const globalForSetback = globalThis as unknown as {
   __coldopsActiveSetbacks?: Map<string, ActiveSetback>
   __coldopsSetbackIdCounter?: number
@@ -53,14 +42,14 @@ export async function startSetback(opts: {
   const room = await db.coldRoom.findUnique({ where: { id: opts.roomId } })
   if (!room) throw new Error('Room not found')
 
-  // Clamp end setpoint to safe range
+  
   const safeEnd = Math.max(room.minSafeTemp, Math.min(room.maxSafeTemp, opts.endSetpoint))
 
-  // Build ramp: 4 steps, 4s each
+  
   const steps = buildRampSchedule(room.targetTemp, safeEnd, 4, 4)
   const setbackId = `SB-${String(globalForSetback.__coldopsSetbackIdCounter++).padStart(4, '0')}`
 
-  // Persist the setback event
+  
   await db.setbackEvent.create({
     data: {
       id: setbackId,
@@ -91,7 +80,7 @@ export async function startSetback(opts: {
   }
   activeSetbacks.set(setbackId, active)
 
-  // Schedule each step
+  
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]
     const t = setTimeout(async () => {
@@ -101,7 +90,7 @@ export async function startSetback(opts: {
     active.timers.push(t)
   }
 
-  // Final completion check
+  
   const finalT = setTimeout(async () => {
     if (active.aborted) return
     await completeSetback(setbackId)
@@ -120,7 +109,7 @@ async function executeStep(setbackId: string, stepIndex: number) {
   const requestId = `${setbackId}-S${stepIndex}`
   console.log(`[setback] ${setbackId} step ${stepIndex}: writing setpoint ${step.setpoint}°C to ${active.roomCode}`)
 
-  // 1. Write setpoint
+  
   const writeResult = await bmsWriteSetpoint(active.roomCode, step.setpoint, requestId)
   if (!writeResult.accepted) {
     console.warn(`[setback] ${setbackId} step ${stepIndex} REJECTED:`, writeResult.error)
@@ -128,13 +117,13 @@ async function executeStep(setbackId: string, stepIndex: number) {
     return
   }
 
-  // 2. Wait 1s, confirm readback
+  
   await new Promise(r => setTimeout(r, 1000))
   if (active.aborted) return
   const confirm = await bmsConfirmSetpoint(active.roomCode, requestId)
   step.confirmed = confirm.confirmed
 
-  // 3. Update DB
+  
   await db.setbackEvent.update({
     where: { id: setbackId },
     data: {
@@ -143,7 +132,7 @@ async function executeStep(setbackId: string, stepIndex: number) {
     },
   })
 
-  // 4. Broadcast progress
+  
   await broadcast('setback-progress', {
     setbackId,
     roomId: active.roomId,
@@ -167,22 +156,22 @@ async function completeSetback(setbackId: string) {
     data: { status: 'COMPLETED', completedAt: new Date() },
   })
 
-  // Update room targetTemp to the new setpoint (so it persists)
+  
   await db.coldRoom.update({
     where: { id: active.roomId },
     data: { targetTemp: active.endSetpoint },
   })
 
-  // Compute saving: (startSetpoint load − endSetpoint load) over 8h
+  
   const room = await db.coldRoom.findUnique({ where: { id: active.roomId } })
   if (room) {
-    const savingPerHour = room.maxPowerKW * 0.4 * 0.509 // ~40% load reduction * tariff
+    const savingPerHour = room.maxPowerKW * 0.4 * 0.509 
     const savedTonight = Math.round(savingPerHour * 100) / 100
 
-    // Increment the savings counter
+    
     const savings = await db.savingsCounter.findUnique({ where: { id: 1 } })
     if (savings) {
-      const co2Kg = savedTonight / 0.509 * 0.583 // kWh saved * CO2 factor
+      const co2Kg = savedTonight / 0.509 * 0.583 
       await db.savingsCounter.update({
         where: { id: 1 },
         data: {
@@ -202,7 +191,7 @@ async function completeSetback(setbackId: string) {
       })
     }
 
-    // Resolve the ghost load event if one is active for this room
+    
     await db.ghostLoadEvent.updateMany({
       where: { roomId: active.roomId, status: 'ACTIVE' },
       data: { status: 'RESOLVED', endTime: new Date() },
@@ -225,7 +214,7 @@ async function completeSetback(setbackId: string) {
     })
   }
 
-  // Clear timers
+  
   for (const t of active.timers) clearTimeout(t)
   activeSetbacks.delete(setbackId)
   console.log(`[setback] ${setbackId} COMPLETED`)
@@ -236,7 +225,7 @@ async function abortSetback(setbackId: string, reason: string) {
   if (!active) return
   active.aborted = true
 
-  // Revert setpoint immediately
+  
   const revertId = `${setbackId}-REVERT`
   await bmsWriteSetpoint(active.roomCode, active.startSetpoint, revertId)
 
@@ -258,10 +247,7 @@ async function abortSetback(setbackId: string, reason: string) {
   console.warn(`[setback] ${setbackId} ABORTED: ${reason}`)
 }
 
-/**
- * Background safety monitor: polls each active setback's room temp every 1s.
- * If temp goes outside safe range, aborts the setback.
- */
+
 let monitorRunning = false
 export function startSafetyMonitor() {
   if (monitorRunning) return
@@ -280,7 +266,7 @@ export function startSafetyMonitor() {
           await abortSetback(id, `Temperature ${state.currentTemp}°C outside safe range [${room.minSafeTemp}, ${room.maxSafeTemp}]`)
         }
       } catch (e) {
-        // ignore
+        
       }
     }
   }, 1500)

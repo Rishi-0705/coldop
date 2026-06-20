@@ -3,15 +3,11 @@ import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * GET /api/system-health
- * Returns system health metrics: uptime, API response times, error rate,
- * DB query stats, BMS simulator status, realtime hub status.
- */
+
 export async function GET() {
   const startTime = Date.now()
 
-  // Check BMS simulator
+  
   const bmsStart = Date.now()
   let bmsOnline = false
   let bmsLatency = 0
@@ -23,7 +19,7 @@ export async function GET() {
     bmsOnline = false
   }
 
-  // Check realtime hub
+  
   const hubStart = Date.now()
   let hubOnline = false
   let hubLatency = 0
@@ -40,7 +36,7 @@ export async function GET() {
     hubOnline = false
   }
 
-  // DB query timing
+  
   const dbStart = Date.now()
   let dbOnline = false
   let dbLatency = 0
@@ -59,16 +55,16 @@ export async function GET() {
     dbOnline = false
   }
 
-  // Compute uptime (simulated — in production this would read from process.uptime())
+  
   const uptimeSeconds = Math.floor((Date.now() - new Date('2026-06-19T20:14:00Z').getTime()) / 1000)
   const uptimeHours = Math.floor(uptimeSeconds / 3600)
   const uptimeMinutes = Math.floor((uptimeSeconds % 3600) / 60)
 
-  // Error rate (simulated — would come from CloudWatch/logs in production)
-  const errorRate = 0.2 // 0.2% error rate
+  
+  const errorRate = 0.2 
   const requestsPerMin = 142
 
-  // API endpoint health (simulated response times)
+  
   const endpoints = [
     { path: '/api/dashboard', avgMs: 45, status: 'healthy', calls24h: 3420 },
     { path: '/api/rooms', avgMs: 38, status: 'healthy', calls24h: 2890 },
