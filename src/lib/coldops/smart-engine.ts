@@ -112,7 +112,13 @@ export function computeRecommendation(
   if (timeWindow === 'SHUTDOWN') {
     // Facility is idle — warm up towards the safe max to save compressor energy
     recommended = Math.min(maxSafeTemp, tempSpec.max)
-    reason = `Off-peak scheduled adjustment. Stock (${Math.round(utilPct * 100)}% full) will be stable overnight. Adjusting setpoint to ${recommended}°C will save significant compressor energy.`
+    if (recommended > currentSetpoint) {
+      reason = `Off-peak scheduled adjustment. Stock (${Math.round(utilPct * 100)}% full) will be stable overnight. Raising setpoint to ${recommended}°C will save significant compressor energy.`
+    } else if (recommended < currentSetpoint) {
+      reason = `Off-peak scheduled adjustment. Lowering setpoint to ${recommended}°C to ensure stock safety overnight.`
+    } else {
+      reason = `Off-peak scheduled adjustment. Maintaining setpoint at ${recommended}°C for overnight stability.`
+    }
   } else if (timeWindow === 'PEAK') {
     // High demand — keep coldest safe temperature
     recommended = Math.max(minSafeTemp, tempSpec.min)
@@ -140,7 +146,7 @@ export function computeRecommendation(
   const deltaTemp = recommended - currentSetpoint
   // Estimate: 1°C warmer ≈ 3% less compressor energy. Average room = 15kW.
   const maxKW = input.currentKW ?? 15
-  const estimatedKwhSavedPerHour = deltaTemp > 0 ? +(maxKW * 0.03 * deltaTemp).toFixed(2) : 0
+  const estimatedKwhSavedPerHour = +(maxKW * 0.03 * deltaTemp).toFixed(2)
   const estimatedRmSavedPerHour = +(estimatedKwhSavedPerHour * TNB_TARIFF).toFixed(3)
 
   const actionRequired = Math.abs(recommended - currentSetpoint) >= 0.5
@@ -239,7 +245,7 @@ export async function runSmartEngine(
       ? `${rec.coolerCode}: Raise setpoint to ${rec.recommendedSetpoint}°C at ${scheduledTime}`
       : `${rec.coolerCode}: Lower setpoint to ${rec.recommendedSetpoint}°C at ${scheduledTime}`
 
-    const message = `${rec.reason} Estimated saving: RM ${rec.estimatedRmSavedPerHour.toFixed(2)}/hr.`
+    const message = `${rec.reason} Estimated ${rec.estimatedRmSavedPerHour >= 0 ? 'saving' : 'cost'}: RM ${Math.abs(rec.estimatedRmSavedPerHour).toFixed(2)}/hr.`
 
     await db.notification.create({
       data: {

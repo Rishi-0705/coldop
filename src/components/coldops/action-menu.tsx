@@ -52,11 +52,18 @@ function ActionCard({
   const isConsolidation = notif.type === 'CONSOLIDATION' || notif.type === 'CONSOLIDATION_SUGGESTED'
   const isTemp = !isConsolidation
 
-  // Estimate: temp cards save ~20-35% power, consolidation ~40-60%
-  const savingPct = isConsolidation ? 0.45 : 0.25
-  const baseKW = 15 + Math.random() * 10
+  // Calculate actual saving percentage from the notification's estimated RM impact
+  const baseKW = 15 // Assume average 15kW for visual chart baseline
+  let kwhSavedPerHour = 0
+  if (notif.rmPerHour) {
+    kwhSavedPerHour = notif.rmPerHour / 0.509 // TNB_TARIFF
+  } else if (isConsolidation && notif.rmImpact > 0) {
+    kwhSavedPerHour = (notif.rmImpact / (notif.durationHours || 8)) / 0.509
+  }
+  
+  const savingPct = kwhSavedPerHour / baseKW
+  const estimatedKwhSaved = (kwhSavedPerHour * (notif.durationHours || 8)).toFixed(1)
   const impactData = generateImpactData(baseKW, savingPct)
-  const estimatedKwhSaved = (baseKW * savingPct * 6).toFixed(1)
 
   const handleDragEnd = (_: any, info: any) => {
     if (info.offset.x > 120) {
@@ -127,10 +134,12 @@ function ActionCard({
                 {notif.room ? `Room: ${notif.room.code} — ${notif.room.name}` : 'All Rooms'}
               </div>
             </div>
-            {notif.rmImpact > 0 && (
+            {notif.rmImpact !== 0 && (
               <div className="ml-auto text-right">
-                <div className="text-lg font-bold text-emerald-600">{formatRM(notif.rmImpact)}</div>
-                <div className="text-[10px] text-muted-foreground">potential saving</div>
+                <div className={`text-lg font-bold ${notif.rmImpact > 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {notif.rmImpact > 0 ? '+' : '-'}{formatRM(Math.abs(notif.rmImpact))}
+                </div>
+                <div className="text-[10px] text-muted-foreground">potential {notif.rmImpact > 0 ? 'saving' : 'cost'}</div>
               </div>
             )}
           </div>
@@ -144,7 +153,7 @@ function ActionCard({
           <div className="flex-1 min-h-0">
             <p className="text-[11px] text-muted-foreground font-medium mb-1 flex items-center gap-1">
               <Zap className="h-3 w-3" />
-              Projected power drop if approved (~{(savingPct * 100).toFixed(0)}% reduction, est. {estimatedKwhSaved} kWh saved)
+              Projected power {savingPct >= 0 ? 'drop' : 'increase'} if approved (~{Math.abs(savingPct * 100).toFixed(0)}% {savingPct >= 0 ? 'reduction' : 'increase'}, est. {Math.abs(Number(estimatedKwhSaved)).toFixed(1)} kWh {savingPct >= 0 ? 'saved' : 'consumed'})
             </p>
             <div className="h-24">
               <ResponsiveContainer width="100%" height="100%">
