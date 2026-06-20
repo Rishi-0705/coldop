@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import {
   Map as MapIcon, ArrowRight, ArrowLeftRight, ClipboardList, Loader2,
-  Package, Clock, AlertTriangle, Shield, X, ChevronRight
+  Package, Clock, AlertTriangle, Shield, X, ChevronRight, ThermometerSun
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -21,6 +22,7 @@ import {
 import type { RoomWithBms, ConsolidationPlan, RoomDetail } from '@/lib/coldops/types'
 import { roomStatusColor, formatRM, formatKW, formatTemp, timeAgo } from '@/lib/coldops/ui'
 import { Legend, Metric } from './shared'
+import { CircularGauge } from './motion'
 
 // ============================================================================
 // VIEW: COLD ROOM MAP
@@ -165,6 +167,9 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
           )}
         </div>
       </div>
+
+      {/* Live Temperature Gauges */}
+      <TempGaugeGrid rooms={rooms} />
 
       {/* Room Detail Modal */}
       <RoomDetailModal roomCode={detailRoom} onClose={() => setDetailRoom(null)} />
@@ -462,5 +467,81 @@ function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClo
         )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+// ============================================================================
+// LIVE TEMPERATURE GAUGE GRID
+// ============================================================================
+
+function TempGaugeGrid({ rooms }: { rooms: RoomWithBms[] }) {
+  return (
+    <Card className="border-border/60">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ThermometerSun className="h-4 w-4 text-amber-500" />
+              Live BMS Temperature Gauges
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Real-time compressor load + temperature from BMS simulator · {rooms.length} rooms monitored
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
+            Live
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {rooms.map((room, i) => {
+            if (!room.bms) return (
+              <div key={room.id} className="text-center p-2 rounded-lg border border-border/40 opacity-50">
+                <div className="text-[10px] font-mono">{room.code}</div>
+                <div className="text-[9px] text-muted-foreground">Offline</div>
+              </div>
+            )
+            const tempPct = (room.bms.currentTemp - room.minSafeTemp) / (room.maxSafeTemp - room.minSafeTemp)
+            const loadPct = room.bms.compressorLoad
+            const isGhost = room.status === 'GHOST_LOAD'
+            const tempColor = isGhost ? '#ef4444' : room.bms.currentTemp > room.targetTemp + 2 ? '#f59e0b' : '#10b981'
+            const loadColor = loadPct > 0.7 ? '#ef4444' : loadPct > 0.4 ? '#f59e0b' : '#10b981'
+
+            return (
+              <motion.div
+                key={room.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.05 }}
+                className={`flex flex-col items-center p-2 rounded-lg border ${isGhost ? 'border-red-200 bg-red-50/40' : 'border-border/60'}`}
+              >
+                <div className="text-[10px] font-mono font-bold mb-1">{room.code}</div>
+                <CircularGauge
+                  value={room.bms.currentTemp}
+                  max={room.maxSafeTemp}
+                  size={80}
+                  unit="°C"
+                  color={tempColor}
+                />
+                <div className="text-[9px] text-muted-foreground mt-1.5 mb-1">Load</div>
+                <div className="h-1.5 w-16 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: loadColor }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${loadPct * 100}%` }}
+                    transition={{ duration: 0.6, delay: i * 0.05 }}
+                  />
+                </div>
+                <div className="text-[9px] font-mono mt-0.5">{Math.round(loadPct * 100)}%</div>
+                <div className="text-[9px] text-muted-foreground mt-0.5">{formatKW(room.bms.powerKW)}</div>
+              </motion.div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
   )
 }

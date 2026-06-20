@@ -538,3 +538,27 @@ export interface DispatchLog {
     criticalDispatched: number
   }
 }
+
+// ===== ESG types =====
+
+export interface EsgData {
+  co2: {
+    avoidedTonnes: number
+    equivalentTrees: number
+    equivalentCarsOff: number
+    equivalentHomesPowered: number
+  }
+  energy: {
+    totalKwhSaved: number
+    monthlyKwhSaved: number
+    peakDemandReductionKW: number
+  }
+  esgScore: {
+    grade: string
+    score: number
+    breakdown: { environmental: number; social: number; governance: number }
+  }
+  monthlyTrend: { month: string; co2Tonnes: number; kwhSaved: number; rmSaved: number }[]
+  sdg: { id: number; name: string; color: string; contribution: string }[]
+  tariff: number
+}

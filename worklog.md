@@ -406,3 +406,47 @@ Stage Summary:
 ## Unresolved Issues / Next Steps
 - No known bugs — platform is stable and feature-complete
 - Potential next features: PDF report generation (beyond CSV), multi-factory dashboard, historical trend comparison, mobile companion app, BACnet/Modbus adapter stubs
+
+---
+Task ID: 10 (ESG Dashboard + Temp Gauges + Animated Counters)
+Agent: orchestrator (main)
+Task: Add ESG/Sustainability dashboard, live BMS temperature gauges, animated count-up numbers + circular gauges.
+
+Work Log:
+- Added /api/esg API route: CO2 avoided (tonnes), equivalent trees/cars/homes, energy savings (kWh), ESG score with grade (A+/A/B+/B/C) + breakdown (environmental/social/governance), 6-month CO2 trend, UN SDG alignment (4 goals: 7/9/12/13)
+- Added CountUp component to motion.tsx: animated count-up number with easeOutCubic easing, configurable format + duration
+- Added CircularGauge component to motion.tsx: animated SVG circular progress ring with framer-motion strokeDashoffset animation, configurable size/color/label/unit
+- Created EsgDashboard component (esg.tsx): 
+  • ESG Score hero card with grade badge (A+/A/B+/B/C) + animated score number
+  • 3 score bars (Environmental/Social/Governance) with animated width fill
+  • 4 impact cards (CO2 tonnes, trees/yr, cars off road, homes/mo) with animated count-up
+  • 6-month CO2 avoided trend area chart (emerald gradient)
+  • UN SDG alignment list with colored goal badges + contribution descriptions
+  • Energy savings summary with 3 circular gauges (kWh saved, peak demand reduction, CO2 avoided)
+- Added TempGaugeGrid to Cold Room Map: 8 circular temperature gauges (one per room) showing real-time BMS temp, animated compressor load bar, power kW, color-coded by ghost load status (red for ghost, amber for temp drift, emerald for normal)
+- Added EsgDashboard to Command Center (below Energy Forecast widget)
+- Browser verification:
+  • ESG dashboard: Score 58 (Grade C), Environmental 23, Social 78, Governance 85, CO2 2.34t, 107 trees, 0.5 cars, 31.6 homes
+  • Temp gauges: All 8 rooms showing real BMS temps (CR-01: 4.0°C, CR-03: -18.0°C, CR-05: 2.0°C, etc.)
+  • Animated count-up numbers working on ESG impact cards
+  • Circular gauges rendering with animated stroke fill
+  • No console errors
+
+Stage Summary:
+- ✅ ESG/Sustainability dashboard with CO2 impact, ESG score, UN SDG alignment
+- ✅ Live BMS temperature gauges (8 circular gauges with real-time data)
+- ✅ Animated count-up numbers + circular progress gauges
+- ✅ ESG API tested and verified
+- ✅ Lint clean, no console errors
+
+## Current Project Status
+- 8 views: Command Center, Cold Room Map, Work Orders, Notifications, WMS Stock, Analytics, Schedule, Settings
+- 3 mini-services: Next.js (:3000), BMS simulator (:3004), Realtime hub (:3003)
+- 19 API routes (including new /api/esg)
+- 12 component files in src/components/coldops/ (including new esg.tsx)
+- All modules from original brief implemented + ESG dashboard + animated visualizations
+- Real-time Socket.io updates, framer-motion transitions, Quick Actions panel, circular gauges, count-up animations
+
+## Unresolved Issues / Next Steps
+- No known bugs — platform is stable and feature-rich
+- Potential next features: guided demo tour wizard, PDF report generation, multi-factory dashboard, BACnet/Modbus adapter stubs, mobile companion app

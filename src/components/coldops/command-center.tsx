@@ -21,6 +21,7 @@ import {
   formatDuration, timeAgo
 } from '@/lib/coldops/ui'
 import { KpiCard, ActiveSetbackCard } from './shared'
+import { EsgDashboard } from './esg'
 
 // ============================================================================
 // VIEW: COMMAND CENTER
@@ -249,6 +250,9 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
 
       {/* Energy Cost Forecast */}
       <EnergyForecastWidget />
+
+      {/* ESG / Sustainability Dashboard */}
+      <EsgDashboard />
     </div>
   )
 }
