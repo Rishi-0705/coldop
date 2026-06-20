@@ -71,7 +71,7 @@ const categoryIcon: Record<string, any> = {
 const categoryColor: Record<string, string> = {
   GHOST: 'text-red-500',
   SETBACK: 'text-amber-500',
-  WORK: 'text-emerald-500',
+  WORK: 'text-blue-500',
   NOTIFICATION: 'text-sky-500',
   CAMERA: 'text-violet-500',
 }
@@ -109,6 +109,9 @@ export function LogsView() {
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           Every detection event with clear descriptions of the ML technique / automation used. When you test anomalies (via camera scans or system triggers), the outcome appears here with a full explanation.
+        </p>
+        <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+          Each row is an immutable <b>audit-trail entry</b> that pairs the outcome with the exact <b>technique that produced it</b> — <b>Deterministic Rule Engine</b> for ghost loads, <b>Progressive Setback Engine</b> for BMS ramps, <b>Safety Guardrail System</b> for auto-aborts, <b>Greedy Consolidation Planner</b> for FEFO moves, and <b>Human-in-the-Loop Approval</b> for supervisor actions. This is ColdOps' compliance surface: it proves to auditors (and to investors) that every Ringgit saved came from an explainable, reproducible automation step — not a black box.
         </p>
       </div>
 

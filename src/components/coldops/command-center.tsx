@@ -105,7 +105,7 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
           <CardContent>
             {activeGhosts.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">
-                <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                <CheckCircle2 className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                 No active ghost loads. System optimal.
               </div>
             ) : (
@@ -196,7 +196,7 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
                   <div key={r.id} className={`rounded-lg border ${c.border} ${c.bg} p-2.5`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-semibold text-xs">{r.code}</span>
-                      <span className={`h-1.5 w-1.5 rounded-full ${c.bg.includes('emerald') ? 'bg-emerald-500' : c.bg.includes('red') ? 'bg-red-500' : c.bg.includes('amber') ? 'bg-amber-500' : 'bg-zinc-400'} animate-pulse`} />
+                      <span className={`h-1.5 w-1.5 rounded-full ${c.bg.includes('blue') ? 'bg-blue-500' : c.bg.includes('red') ? 'bg-red-500' : c.bg.includes('amber') ? 'bg-amber-500' : 'bg-zinc-400'} animate-pulse`} />
                     </div>
                     <div className="text-[10px] text-muted-foreground truncate mb-1.5">{r.name}</div>
                     <div className="flex items-center justify-between text-[10px]">
@@ -299,19 +299,19 @@ function EnergyForecastWidget() {
     : 0
 
   return (
-    <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-card to-card">
+    <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 via-card to-card">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-emerald-500" />
+              <TrendingDown className="h-4 w-4 text-blue-500" />
               Energy Cost Forecast & ROI
             </CardTitle>
             <CardDescription className="text-xs">
               Projected monthly cost: {formatRM(current.monthlyCostWithout)} → {formatRM(current.monthlyCostWith)} ({savingsPct}% reduction)
             </CardDescription>
           </div>
-          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
             {roi.roiPercent}% ROI · {roi.paybackDays}d payback
           </Badge>
         </div>
@@ -325,9 +325,9 @@ function EnergyForecastWidget() {
               <div className="text-2xl font-bold text-red-600">{formatRM(current.monthlyCostWithout)}</div>
               <div className="text-[10px] text-muted-foreground">per month at {current.totalPowerKW} kW continuous</div>
             </div>
-            <div className="rounded-lg border border-emerald-200 p-3 bg-emerald-50/50">
-              <div className="text-[10px] text-emerald-700 uppercase tracking-wide mb-1">With ColdOps</div>
-              <div className="text-2xl font-bold text-emerald-700">{formatRM(current.monthlyCostWith)}</div>
+            <div className="rounded-lg border border-blue-200 p-3 bg-blue-50/50">
+              <div className="text-[10px] text-blue-700 uppercase tracking-wide mb-1">With ColdOps</div>
+              <div className="text-2xl font-bold text-blue-700">{formatRM(current.monthlyCostWith)}</div>
               <div className="text-[10px] text-muted-foreground">
                 Save {formatRM(current.monthlySavings)}/mo · {formatRM(roi.annualSavings)}/yr
               </div>
@@ -380,7 +380,7 @@ function EnergyForecastWidget() {
           </div>
           <div className="text-center">
             <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Setback</div>
-            <div className="text-lg font-bold text-emerald-600">{formatRM(breakdown.setback.monthlySavings)}</div>
+            <div className="text-lg font-bold text-blue-600">{formatRM(breakdown.setback.monthlySavings)}</div>
             <div className="text-[10px] text-muted-foreground">{breakdown.setback.activeCount} active</div>
           </div>
         </div>

@@ -53,6 +53,9 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
             Energy Analytics & ROI
           </h2>
           <p className="text-sm text-muted-foreground">30-day trends · ghost load heatmap · payback analysis</p>
+          <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            Aggregates every <b>detection signal</b> into investor-grade visuals: a 24-hour <b>ghost load heatmap</b> (room × hour), a 30-day RM savings trend, the current <b>energy mix by zone</b>, a 5-axis <b>room comparison radar</b>, and the SaaS <b>payback period</b> derived from real TNB tariff savings. This is the proof layer that turns ColdOps from operational tool into board-level reporting — every chart back-traces to a logged detection event, so the numbers are auditable.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => window.open('/api/export/savings', '_blank')}>
@@ -94,7 +97,7 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-emerald-500" />
+              <TrendingDown className="h-4 w-4 text-blue-500" />
               30-Day Savings Trend
             </CardTitle>
             <CardDescription className="text-xs">Daily RM savings · weekends shaded</CardDescription>
@@ -174,14 +177,14 @@ export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh 
               <ScrollArea className="h-[280px] pr-2">
                 <div className="space-y-2">
                   {setbackHistory.slice(0, 15).map(s => (
-                    <div key={s.id} className={`rounded-lg border p-2.5 text-xs ${s.status === 'COMPLETED' ? 'border-emerald-200 bg-emerald-50/50' : s.status === 'ABORTED' ? 'border-red-200 bg-red-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
+                    <div key={s.id} className={`rounded-lg border p-2.5 text-xs ${s.status === 'COMPLETED' ? 'border-blue-200 bg-blue-50/50' : s.status === 'ABORTED' ? 'border-red-200 bg-red-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-semibold">{s.id}</span>
                           <Badge variant="outline" className="text-[9px]">{s.roomCode}</Badge>
-                          <Badge variant="outline" className={`text-[9px] ${s.status === 'COMPLETED' ? 'text-emerald-700' : s.status === 'ABORTED' ? 'text-red-700' : 'text-amber-700'}`}>{s.status}</Badge>
+                          <Badge variant="outline" className={`text-[9px] ${s.status === 'COMPLETED' ? 'text-blue-700' : s.status === 'ABORTED' ? 'text-red-700' : 'text-amber-700'}`}>{s.status}</Badge>
                         </div>
-                        {s.estRmSaved > 0 && <span className="font-bold text-emerald-700">{formatRM(s.estRmSaved)}</span>}
+                        {s.estRmSaved > 0 && <span className="font-bold text-blue-700">{formatRM(s.estRmSaved)}</span>}
                       </div>
                       <div className="text-[10px] text-muted-foreground flex items-center gap-2">
                         <span>{s.startSetpoint}°C → {s.endSetpoint}°C</span>
@@ -593,8 +596,8 @@ function RoomComparisonRadar() {
 function MetricCell({ label, value, invert }: { label: string; value: number; invert: boolean }) {
   // invert=true means lower is better (red high), invert=false means higher is better (green high)
   const color = invert
-    ? value > 66 ? 'text-red-600' : value > 33 ? 'text-amber-600' : 'text-emerald-600'
-    : value > 66 ? 'text-emerald-600' : value > 33 ? 'text-amber-600' : 'text-red-600'
+    ? value > 66 ? 'text-red-600' : value > 33 ? 'text-amber-600' : 'text-blue-600'
+    : value > 66 ? 'text-blue-600' : value > 33 ? 'text-amber-600' : 'text-red-600'
   return (
     <div className="text-center">
       <div className="text-[8px] text-muted-foreground uppercase">{label}</div>

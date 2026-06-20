@@ -49,12 +49,12 @@ export function EsgDashboard() {
   return (
     <div className="space-y-4">
       {/* ESG Score Hero */}
-      <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/60 via-card to-sky-50/40">
+      <Card className="border-blue-200 bg-gradient-to-br from-blue-50/60 via-card to-sky-50/40">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
-                <Leaf className="h-4 w-4 text-emerald-500" />
+                <Leaf className="h-4 w-4 text-blue-500" />
                 Sustainability & ESG Dashboard
               </CardTitle>
               <CardDescription className="text-xs">
@@ -64,10 +64,10 @@ export function EsgDashboard() {
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wide">ESG Score</div>
-                <CountUp value={esgScore.score} format={(v) => Math.round(v).toString()} className="text-2xl font-bold text-emerald-600" />
+                <CountUp value={esgScore.score} format={(v) => Math.round(v).toString()} className="text-2xl font-bold text-blue-600" />
               </div>
               <div className={`grid place-items-center h-14 w-14 rounded-xl font-bold text-2xl ${
-                esgScore.grade.startsWith('A') ? 'bg-emerald-100 text-emerald-700' :
+                esgScore.grade.startsWith('A') ? 'bg-blue-100 text-blue-700' :
                 esgScore.grade.startsWith('B') ? 'bg-amber-100 text-amber-700' :
                 'bg-zinc-100 text-zinc-600'
               }`}>
@@ -79,7 +79,7 @@ export function EsgDashboard() {
         <CardContent>
           {/* ESG Score breakdown bars */}
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <ScoreBar label="Environmental" score={esgScore.breakdown.environmental} color="emerald" />
+            <ScoreBar label="Environmental" score={esgScore.breakdown.environmental} color="blue" />
             <ScoreBar label="Social" score={esgScore.breakdown.social} color="sky" />
             <ScoreBar label="Governance" score={esgScore.breakdown.governance} color="violet" />
           </div>
@@ -91,7 +91,7 @@ export function EsgDashboard() {
               value={co2.avoidedTonnes}
               unit="tonnes CO₂"
               label="Avoided"
-              color="emerald"
+              color="blue"
               format={(v) => v.toFixed(2)}
             />
             <ImpactCard
@@ -99,7 +99,7 @@ export function EsgDashboard() {
               value={co2.equivalentTrees}
               unit="trees/yr"
               label="Equivalent"
-              color="green"
+              color="blue"
             />
             <ImpactCard
               icon={Car}
@@ -126,7 +126,7 @@ export function EsgDashboard() {
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <TrendingUp className="h-4 w-4 text-blue-500" />
               6-Month CO₂ Avoided Trend
             </CardTitle>
             <CardDescription className="text-xs">Monthly CO₂ reduction in tonnes</CardDescription>
@@ -244,9 +244,9 @@ export function EsgDashboard() {
   )
 }
 
-function ScoreBar({ label, score, color }: { label: string; score: number; color: 'emerald' | 'sky' | 'violet' }) {
+function ScoreBar({ label, score, color }: { label: string; score: number; color: 'blue' | 'sky' | 'violet' }) {
   const colors = {
-    emerald: { bar: 'bg-emerald-500', text: 'text-emerald-600' },
+    blue: { bar: 'bg-blue-500', text: 'text-blue-600' },
     sky: { bar: 'bg-sky-500', text: 'text-sky-600' },
     violet: { bar: 'bg-violet-500', text: 'text-violet-600' },
   }
@@ -274,12 +274,11 @@ function ImpactCard({ icon: Icon, value, unit, label, color, format = (v: number
   value: number
   unit: string
   label: string
-  color: 'emerald' | 'green' | 'amber' | 'sky'
+  color: 'blue' | 'amber' | 'sky'
   format?: (v: number) => string
 }) {
   const colors = {
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: 'text-emerald-500' },
-    green: { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-500' },
+    blue: { bg: 'bg-blue-50', text: 'text-blue-600', icon: 'text-blue-500' },
     amber: { bg: 'bg-amber-50', text: 'text-amber-600', icon: 'text-amber-500' },
     sky: { bg: 'bg-sky-50', text: 'text-sky-600', icon: 'text-sky-500' },
   }

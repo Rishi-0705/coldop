@@ -83,6 +83,9 @@ export function WmsView() {
             WMS Stock Browser
           </h2>
           <p className="text-sm text-muted-foreground">{data?.stats.total || 0} pallets across {Object.keys(data?.stats.byRoom || {}).length || 0} rooms · FEFO-tracked · allergen-tagged</p>
+          <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            Live browser over the <b>WMS pallet table</b> — every pallet has a lot number, room/bay location, expiry date, allergen tags, and a computed <b>FEFO rank</b> (1 = ship first). The consolidation planner reads this same table when generating work orders, so what you see here is exactly what the planner sees. Filtering by expiry, allergen, or quarantine lets the supervisor sanity-check the planner’s destination choices before approving a move.
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchPallets}>
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
@@ -381,7 +384,7 @@ export function WmsMoveHistory() {
                   transition={{ delay: Math.min(i * 0.02, 0.3) }}
                   className="flex items-center gap-2 text-xs rounded-md border border-border/60 p-2 hover:bg-muted/30 transition-colors"
                 >
-                  <span className="grid place-items-center h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">{m.sequence}</span>
+                  <span className="grid place-items-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">{m.sequence}</span>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{m.productName}</div>
                     <div className="text-[10px] text-muted-foreground font-mono">{m.lotNo}</div>
@@ -389,7 +392,7 @@ export function WmsMoveHistory() {
                   <div className="flex items-center gap-1 text-[10px] font-mono">
                     <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700">{m.fromRoomCode}:{m.fromBayCode}</span>
                     <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">{m.toRoomCode}:{m.toBayCode}</span>
+                    <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">{m.toRoomCode}:{m.toBayCode}</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground text-right">
                     <div>{m.confirmedAt ? timeAgo(m.confirmedAt) : '—'}</div>

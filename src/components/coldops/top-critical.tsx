@@ -68,6 +68,7 @@ export function TopCriticalPanel() {
           title="Top 10 Critical Items"
           description="Cross-category severity ranking — the most urgent issues across ghost loads, consolidation, temperature violations, and FEFO warnings. Tackle these first."
           flagship="Main Detection"
+          detailed="Aggregates items from every ColdOps engine — <b>deterministic ghost load rules</b>, <b>greedy consolidation planner</b> output, active BMS setbacks, and notification queue — then re-scores them on a unified <b>severity formula</b> (RM waste × 0.5 + duration × 10 + safety bonus + room criticality bonus). This is ColdOps' single prioritized queue: instead of flipping between four views, the supervisor sees the 10 actions that will recover the most Ringgit per minute of attention."
         />
       </CardHeader>
       <CardContent>
@@ -78,7 +79,7 @@ export function TopCriticalPanel() {
         ) : items.length === 0 ? (
           <div className="grid place-items-center h-[200px]">
             <div className="text-center">
-              <AlertTriangle className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+              <AlertTriangle className="h-8 w-8 text-blue-500 mx-auto mb-2" />
               <div className="text-sm text-muted-foreground">No critical items — system is optimal.</div>
             </div>
           </div>

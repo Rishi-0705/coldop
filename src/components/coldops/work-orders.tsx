@@ -52,6 +52,9 @@ export function WorkOrdersView({ workOrders, activeSetbacks, onComplete }: { wor
             Work Orders
           </h2>
           <p className="text-sm text-muted-foreground">Consolidation tasks dispatched to warehouse · FEFO-sequenced · allergen-checked</p>
+          <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            Lists the <b>greedy consolidation planner</b> output as actionable move tasks for warehouse staff — each work order carries a FEFO-ordered pallet sequence, allergen segregation checks, an estimated labor minute budget, and a net-benefit figure (energy saved minus labor cost). Completing a task fires a <b>POST /api/work-orders/{`{id}`}/complete</b> that updates WMS pallet locations and auto-triggers <b>Progressive Setback</b> on the emptied source rooms — closing the loop from plan → physical move → automated BMS recovery.
+          </p>
         </div>
       </div>
 
@@ -100,14 +103,14 @@ export function WorkOrdersView({ workOrders, activeSetbacks, onComplete }: { wor
       {completed.length > 0 && (
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Recently Completed ({completed.length})
+            <CheckCircle2 className="h-4 w-4 text-blue-500" /> Recently Completed ({completed.length})
           </h3>
           <div className="space-y-2">
             {completed.map(wo => (
-              <Card key={wo.id} className="border-emerald-200 bg-emerald-50/40">
+              <Card key={wo.id} className="border-blue-200 bg-blue-50/40">
                 <CardContent className="p-3">
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{wo.title}</div>
                       <div className="text-[11px] text-muted-foreground">
@@ -115,7 +118,7 @@ export function WorkOrdersView({ workOrders, activeSetbacks, onComplete }: { wor
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-bold text-emerald-700">{formatRM(wo.rmSaved || wo.rmSavedPerHour)}</div>
+                      <div className="text-sm font-bold text-blue-700">{formatRM(wo.rmSaved || wo.rmSavedPerHour)}</div>
                       <div className="text-[10px] text-muted-foreground">saved</div>
                     </div>
                   </div>
@@ -149,10 +152,10 @@ function WorkOrderCard({ wo, expanded, onToggle, onComplete, completing }: {
             </div>
           </div>
           <div className="text-right">
-            <div className="text-sm font-bold text-emerald-700">{formatRM(wo.rmSavedPerHour)}/hr</div>
+            <div className="text-sm font-bold text-blue-700">{formatRM(wo.rmSavedPerHour)}/hr</div>
             <div className="text-[10px] text-muted-foreground">est. saving</div>
           </div>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={onComplete} disabled={completing}>
+          <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={onComplete} disabled={completing}>
             {completing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             <span className="ml-1.5">Complete</span>
           </Button>
@@ -161,8 +164,8 @@ function WorkOrderCard({ wo, expanded, onToggle, onComplete, completing }: {
         {expanded && wo.moves && wo.moves.length > 0 && (
           <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5 max-h-72 overflow-y-auto">
             {wo.moves.map(m => (
-              <div key={m.id} className={`flex items-center gap-2 text-xs rounded-md p-2 ${m.confirmedAt ? 'bg-emerald-50 border border-emerald-200' : 'bg-zinc-50 border border-border/60'}`}>
-                <span className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold ${m.confirmedAt ? 'bg-emerald-500 text-white' : 'bg-primary/10 text-primary'}`}>{m.sequence}</span>
+              <div key={m.id} className={`flex items-center gap-2 text-xs rounded-md p-2 ${m.confirmedAt ? 'bg-blue-50 border border-blue-200' : 'bg-zinc-50 border border-border/60'}`}>
+                <span className={`grid place-items-center h-5 w-5 rounded-full text-[10px] font-bold ${m.confirmedAt ? 'bg-blue-500 text-white' : 'bg-primary/10 text-primary'}`}>{m.sequence}</span>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{m.productName}</div>
                   <div className="text-[10px] text-muted-foreground font-mono">{m.lotNo}</div>
@@ -171,9 +174,9 @@ function WorkOrderCard({ wo, expanded, onToggle, onComplete, completing }: {
                 <div className="flex items-center gap-1 text-[10px] font-mono">
                   <span className="px-1 rounded bg-red-50 text-red-700">{m.fromRoomCode}:{m.fromBayCode}</span>
                   <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                  <span className="px-1 rounded bg-emerald-50 text-emerald-700">{m.toRoomCode}:{m.toBayCode}</span>
+                  <span className="px-1 rounded bg-blue-50 text-blue-700">{m.toRoomCode}:{m.toBayCode}</span>
                 </div>
-                {m.confirmedAt ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <CircleDot className="h-3.5 w-3.5 text-muted-foreground/50" />}
+                {m.confirmedAt ? <Check className="h-3.5 w-3.5 text-blue-500" /> : <CircleDot className="h-3.5 w-3.5 text-muted-foreground/50" />}
               </div>
             ))}
           </div>

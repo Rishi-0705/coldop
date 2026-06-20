@@ -105,6 +105,9 @@ export function SettingsView() {
             System Settings
           </h2>
           <p className="text-sm text-muted-foreground">Detection thresholds · BMS integration · Role-based access</p>
+          <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            Single source of truth for every tunable parameter in ColdOps — <b>TNB tariff</b> (drives every RM figure), <b>idle threshold %</b> and <b>minimum duration hours</b> (drive the deterministic ghost load rule), <b>consolidation threshold %</b> (drives the greedy planner), and the <b>setback ramp step</b> (4s for demo / 900s for production). Changing a value here instantly re-scores every open notification — no redeploy, no model retrain. This is what makes ColdOps a <b>white-label SaaS</b>: the same engine ships to every customer with their own thresholds.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {dirty && (
@@ -123,7 +126,7 @@ export function SettingsView() {
       <Card className="border-border/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-emerald-500" />
+            <DollarSign className="h-4 w-4 text-blue-500" />
             Tariff & Cost Configuration
           </CardTitle>
           <CardDescription className="text-xs">These values drive all RM calculations across the platform</CardDescription>
@@ -223,7 +226,7 @@ export function SettingsView() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <InfoBox label="Adapter Type" value={bms.adapter} icon={Server} tone="primary" />
             <InfoBox label="Vendor" value={bms.vendor} icon={Server} tone="default" />
-            <InfoBox label="Status" value={bms.online ? 'Online' : 'Offline'} icon={bms.online ? Check : AlertTriangle} tone={bms.online ? 'emerald' : 'red'} />
+            <InfoBox label="Status" value={bms.online ? 'Online' : 'Offline'} icon={bms.online ? Check : AlertTriangle} tone={bms.online ? 'blue' : 'red'} />
             <InfoBox label="Rooms Connected" value={String(bms.roomsConnected)} icon={ThermometerSun} tone="default" />
           </div>
           <Separator className="my-3" />
@@ -269,10 +272,10 @@ export function SettingsView() {
       </Card>
 
       {/* Current impact summary */}
-      <Card className="border-emerald-200 bg-emerald-50/30">
+      <Card className="border-blue-200 bg-blue-50/30">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            <Check className="h-5 w-5 text-emerald-600 mt-0.5" />
+            <Check className="h-5 w-5 text-blue-600 mt-0.5" />
             <div className="flex-1">
               <div className="font-medium text-sm mb-1">Configuration Active</div>
               <div className="text-xs text-muted-foreground">
@@ -314,7 +317,7 @@ function DispatchLogPanel() {
   const channelIcon = (ch: string) => {
     switch (ch) {
       case 'SMS': return <Smartphone className="h-3.5 w-3.5 text-sky-500" />
-      case 'WHATSAPP': return <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+      case 'WHATSAPP': return <MessageSquare className="h-3.5 w-3.5 text-blue-500" />
       case 'EMAIL': return <Mail className="h-3.5 w-3.5 text-amber-500" />
       default: return <Bell className="h-3.5 w-3.5" />
     }
@@ -322,7 +325,7 @@ function DispatchLogPanel() {
 
   const statusColor = (status: string) => {
     switch (status) {
-      case 'DELIVERED': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+      case 'DELIVERED': return 'bg-blue-100 text-blue-700 border-blue-200'
       case 'SENT': return 'bg-sky-100 text-sky-700 border-sky-200'
       case 'ACKNOWLEDGED': return 'bg-zinc-100 text-zinc-600 border-zinc-200'
       case 'FAILED': return 'bg-red-100 text-red-700 border-red-200'
@@ -346,7 +349,7 @@ function DispatchLogPanel() {
           {!loading && data && (
             <div className="flex gap-1.5">
               <Badge variant="outline" className="text-[10px]"><Smartphone className="h-3 w-3 mr-1 text-sky-500" />{data.stats.byChannel.SMS || 0}</Badge>
-              <Badge variant="outline" className="text-[10px]"><MessageSquare className="h-3 w-3 mr-1 text-emerald-500" />{data.stats.byChannel.WHATSAPP || 0}</Badge>
+              <Badge variant="outline" className="text-[10px]"><MessageSquare className="h-3 w-3 mr-1 text-blue-500" />{data.stats.byChannel.WHATSAPP || 0}</Badge>
               <Badge variant="outline" className="text-[10px]"><Mail className="h-3 w-3 mr-1 text-amber-500" />{data.stats.byChannel.EMAIL || 0}</Badge>
             </div>
           )}
@@ -429,10 +432,10 @@ function SettingField({
   )
 }
 
-function InfoBox({ label, value, icon: Icon, tone }: { label: string; value: string; icon: any; tone: 'primary' | 'emerald' | 'red' | 'default' }) {
+function InfoBox({ label, value, icon: Icon, tone }: { label: string; value: string; icon: any; tone: 'primary' | 'blue' | 'red' | 'default' }) {
   const tones = {
     primary: { bg: 'bg-primary/5', text: 'text-primary', border: 'border-primary/20' },
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+    blue: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
     red: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
     default: { bg: 'bg-muted/50', text: 'text-foreground', border: 'border-border/60' },
   }

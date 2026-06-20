@@ -1,0 +1,605 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect } from 'react'
+     4→import {
+     5→  BarChart3, Flame, TrendingDown, TrendingUp, Factory, Zap,
+     6→  DollarSign, Target, Leaf, ThermometerSun, RefreshCw, Loader2,
+     7→  Download, Layers
+     8→} from 'lucide-react'
+     9→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+    10→import { Button } from '@/components/ui/button'
+    11→import { Badge } from '@/components/ui/badge'
+    12→import { ScrollArea } from '@/components/ui/scroll-area'
+    13→import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+    14→import {
+    15→  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+    16→  Tooltip as RTooltip, ResponsiveContainer, Cell,
+    17→  LineChart, Line, Legend,
+    18→  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+    19→} from 'recharts'
+    20→import type { AnalyticsData, MeterData, SetbackHistoryItem, MultiZoneData, RoomComparisonData } from '@/lib/coldops/types'
+    21→import { formatRM, timeAgo } from '@/lib/coldops/ui'
+    22→import { RoiCard } from './shared'
+    23→
+    24→// ============================================================================
+    25→// VIEW: ANALYTICS
+    26→// ============================================================================
+    27→
+    28→export function AnalyticsView({ analytics, meterData, setbackHistory, onRefresh }: {
+    29→  analytics: AnalyticsData | null
+    30→  meterData: MeterData | null
+    31→  setbackHistory: SetbackHistoryItem[]
+    32→  onRefresh: () => void
+    33→}) {
+    34→  if (!analytics) {
+    35→    return (
+    36→      <div className="grid place-items-center h-[40vh]">
+    37→        <div className="flex flex-col items-center gap-3">
+    38→          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    39→          <div className="text-sm text-muted-foreground">Loading analytics…</div>
+    40→        </div>
+    41→      </div>
+    42→    )
+    43→  }
+    44→
+    45→  const { heatmap, trend, roi, topRooms, energyMix, tariff } = analytics
+    46→
+    47→  return (
+    48→    <div className="space-y-6">
+    49→      <div className="flex items-center justify-between flex-wrap gap-2">
+    50→        <div>
+    51→          <h2 className="text-xl font-semibold flex items-center gap-2">
+    52→            <BarChart3 className="h-5 w-5 text-primary" />
+    53→            Energy Analytics & ROI
+    54→          </h2>
+    55→          <p className="text-sm text-muted-foreground">30-day trends · ghost load heatmap · payback analysis</p>
+    56→        </div>
+    57→        <div className="flex items-center gap-2">
+    58→          <Button variant="outline" size="sm" onClick={() => window.open('/api/export/savings', '_blank')}>
+    59→            <Download className="h-3.5 w-3.5 mr-1.5" /> Savings CSV
+    60→          </Button>
+    61→          <Button variant="outline" size="sm" onClick={() => window.open('/api/export/work-orders', '_blank')}>
+    62→            <Download className="h-3.5 w-3.5 mr-1.5" /> Work Orders CSV
+    63→          </Button>
+    64→          <Button variant="outline" size="sm" onClick={onRefresh}>
+    65→            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+    66→          </Button>
+    67→        </div>
+    68→      </div>
+    69→
+    70→      {/* ROI hero cards */}
+    71→      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    72→        <RoiCard icon={DollarSign} label="Monthly Savings" value={formatRM(roi.monthlySavings)} sub="Current period" tone="optimized" />
+    73→        <RoiCard icon={Target} label="Payback Period" value={roi.roiMonths < 1 ? '< 1 month' : `${roi.roiMonths} months`} sub={`SaaS cost: ${formatRM(roi.saasMonthlyCost)}/mo`} tone="active" />
+    74→        <RoiCard icon={TrendingUp} label="Annual Net Benefit" value={formatRM(roi.netAnnualBenefit)} sub={`ROI: ${roi.roiPercent}%`} tone={roi.netAnnualBenefit > 0 ? 'optimized' : 'ghost'} />
+    75→        <RoiCard icon={Leaf} label="Annual CO₂ Avoided" value={`${(analytics.trend.reduce((s, d) => s + d.co2, 0) * 12 / 30).toFixed(1)} t`} sub="vs TNB grid factor" tone="active" />
+    76→      </div>
+    77→
+    78→      {/* Ghost load heatmap */}
+    79→      <Card className="border-border/60">
+    80→        <CardHeader className="pb-2">
+    81→          <CardTitle className="text-base flex items-center gap-2">
+    82→            <Flame className="h-4 w-4 text-red-500" />
+    83→            24-Hour Ghost Load Heatmap
+    84→          </CardTitle>
+    85→          <CardDescription className="text-xs">Power draw (kW) by room × hour · red = ghost load active · blue = production active</CardDescription>
+    86→        </CardHeader>
+    87→        <CardContent>
+    88→          <GhostLoadHeatmap data={heatmap} />
+    89→        </CardContent>
+    90→      </Card>
+    91→
+    92→      <div className="grid gap-4 lg:grid-cols-2">
+    93→        {/* 30-day savings trend */}
+    94→        <Card className="border-border/60">
+    95→          <CardHeader className="pb-2">
+    96→            <CardTitle className="text-base flex items-center gap-2">
+    97→              <TrendingDown className="h-4 w-4 text-emerald-500" />
+    98→              30-Day Savings Trend
+    99→            </CardTitle>
+   100→            <CardDescription className="text-xs">Daily RM savings · weekends shaded</CardDescription>
+   101→          </CardHeader>
+   102→          <CardContent>
+   103→            <SavingsTrendChart data={trend} />
+   104→          </CardContent>
+   105→        </Card>
+   106→
+   107→        {/* Energy mix by zone */}
+   108→        <Card className="border-border/60">
+   109→          <CardHeader className="pb-2">
+   110→            <CardTitle className="text-base flex items-center gap-2">
+   111→              <Factory className="h-4 w-4 text-primary" />
+   112→              Current Energy Mix by Zone
+   113→            </CardTitle>
+   114→            <CardDescription className="text-xs">Live power draw · ghost rooms highlighted</CardDescription>
+   115→          </CardHeader>
+   116→          <CardContent>
+   117→            <EnergyMixChart data={energyMix} />
+   118→          </CardContent>
+   119→        </Card>
+   120→      </div>
+   121→
+   122→      {/* Multi-zone 24h comparison */}
+   123→      <MultiZoneComparison />
+   124→
+   125→      {/* Room Comparison Radar Chart */}
+   126→      <RoomComparisonRadar />
+   127→
+   128→      {/* Top ghost load rooms + Setback history */}
+   129→      <div className="grid gap-4 lg:grid-cols-2">
+   130→        <Card className="border-border/60">
+   131→          <CardHeader className="pb-2">
+   132→            <CardTitle className="text-base flex items-center gap-2">
+   133→              <Zap className="h-4 w-4 text-red-500" />
+   134→              Top Ghost Load Rooms
+   135→            </CardTitle>
+   136→            <CardDescription className="text-xs">Ranked by total RM waste this period</CardDescription>
+   137→          </CardHeader>
+   138→          <CardContent>
+   139→            {topRooms.length === 0 ? (
+   140→              <div className="text-sm text-muted-foreground py-6 text-center">No ghost load events recorded.</div>
+   141→            ) : (
+   142→              <div className="space-y-2">
+   143→                {topRooms.map((r, i) => (
+   144→                  <div key={r.roomCode} className="flex items-center gap-3 p-2 rounded-lg border border-border/60">
+   145→                    <span className={`grid place-items-center h-7 w-7 rounded-full text-xs font-bold ${i === 0 ? 'bg-red-100 text-red-700' : i === 1 ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'}`}>{i + 1}</span>
+   146→                    <div className="flex-1 min-w-0">
+   147→                      <div className="font-medium text-sm">{r.roomCode} · {r.roomName}</div>
+   148→                      <div className="text-[11px] text-muted-foreground">{r.zone} · {r.eventCount} events · {r.totalHours}h total</div>
+   149→                    </div>
+   150→                    <div className="text-right">
+   151→                      <div className="text-sm font-bold text-red-600">{formatRM(r.totalRM)}</div>
+   152→                      <div className="text-[10px] text-muted-foreground">waste</div>
+   153→                    </div>
+   154→                  </div>
+   155→                ))}
+   156→              </div>
+   157→            )}
+   158→          </CardContent>
+   159→        </Card>
+   160→
+   161→        {/* Setback history */}
+   162→        <Card className="border-border/60">
+   163→          <CardHeader className="pb-2">
+   164→            <CardTitle className="text-base flex items-center gap-2">
+   165→              <ThermometerSun className="h-4 w-4 text-amber-500" />
+   166→              Setback History
+   167→            </CardTitle>
+   168→            <CardDescription className="text-xs">{setbackHistory.length} events · real BMS API executions</CardDescription>
+   169→          </CardHeader>
+   170→          <CardContent>
+   171→            {setbackHistory.length === 0 ? (
+   172→              <div className="text-sm text-muted-foreground py-6 text-center">No setback events yet.</div>
+   173→            ) : (
+   174→              <ScrollArea className="h-[280px] pr-2">
+   175→                <div className="space-y-2">
+   176→                  {setbackHistory.slice(0, 15).map(s => (
+   177→                    <div key={s.id} className={`rounded-lg border p-2.5 text-xs ${s.status === 'COMPLETED' ? 'border-emerald-200 bg-emerald-50/50' : s.status === 'ABORTED' ? 'border-red-200 bg-red-50/50' : 'border-amber-200 bg-amber-50/50'}`}>
+   178→                      <div className="flex items-center justify-between mb-1">
+   179→                        <div className="flex items-center gap-2">
+   180→                          <span className="font-mono font-semibold">{s.id}</span>
+   181→                          <Badge variant="outline" className="text-[9px]">{s.roomCode}</Badge>
+   182→                          <Badge variant="outline" className={`text-[9px] ${s.status === 'COMPLETED' ? 'text-emerald-700' : s.status === 'ABORTED' ? 'text-red-700' : 'text-amber-700'}`}>{s.status}</Badge>
+   183→                        </div>
+   184→                        {s.estRmSaved > 0 && <span className="font-bold text-emerald-700">{formatRM(s.estRmSaved)}</span>}
+   185→                      </div>
+   186→                      <div className="text-[10px] text-muted-foreground flex items-center gap-2">
+   187→                        <span>{s.startSetpoint}°C → {s.endSetpoint}°C</span>
+   188→                        <span>·</span>
+   189→                        <span>{s.reason.replace(/_/g, ' ')}</span>
+   190→                        {s.completedAt && <span>· {timeAgo(s.completedAt)}</span>}
+   191→                        {s.abortedAt && s.abortReason && <span className="text-red-600">· {s.abortReason}</span>}
+   192→                      </div>
+   193→                    </div>
+   194→                  ))}
+   195→                </div>
+   196→              </ScrollArea>
+   197→            )}
+   198→          </CardContent>
+   199→        </Card>
+   200→      </div>
+   201→    </div>
+   202→  )
+   203→}
+   204→
+   205→function GhostLoadHeatmap({ data }: { data: AnalyticsData['heatmap'] }) {
+   206→  const maxKW = Math.max(...data.flatMap(r => r.hours.map(h => h.kw)))
+   207→  return (
+   208→    <div className="overflow-x-auto">
+   209→      <div className="min-w-[700px]">
+   210→        {/* Hour labels */}
+   211→        <div className="flex gap-0.5 mb-1 ml-[120px]">
+   212→          {Array.from({ length: 24 }, (_, h) => (
+   213→            <div key={h} className="flex-1 text-center text-[8px] text-muted-foreground font-mono">
+   214→              {h % 3 === 0 ? `${h}h` : ''}
+   215→            </div>
+   216→          ))}
+   217→        </div>
+   218→        {/* Room rows */}
+   219→        <div className="space-y-0.5">
+   220→          {data.map(room => (
+   221→            <div key={room.roomCode} className="flex items-center gap-1">
+   222→              <div className="w-[115px] flex-shrink-0 text-[10px] font-medium text-right pr-2 truncate">
+   223→                <span className="font-mono">{room.roomCode}</span>
+   224→                <span className="text-muted-foreground ml-1">{room.zone}</span>
+   225→              </div>
+   226→              <div className="flex gap-0.5 flex-1">
+   227→                {room.hours.map(h => {
+   228→                  const intensity = h.kw / maxKW
+   229→                  let bg: string
+   230→                  if (h.isGhost) {
+   231→                    bg = `rgba(239, 68, 68, ${0.3 + intensity * 0.6})`
+   232→                  } else if (h.isProd) {
+   233→                    bg = `rgba(14, 165, 233, ${0.15 + intensity * 0.3})`
+   234→                  } else {
+   235→                    bg = `rgba(16, 185, 129, ${0.1 + intensity * 0.2})`
+   236→                  }
+   237→                  return (
+   238→                    <TooltipProvider key={h.hour}>
+   239→                      <Tooltip>
+   240→                        <TooltipTrigger asChild>
+   241→                          <div
+   242→                            className="flex-1 h-6 rounded-sm border border-white/40 cursor-pointer hover:ring-1 hover:ring-primary"
+   243→                            style={{ backgroundColor: bg }}
+   244→                          />
+   245→                        </TooltipTrigger>
+   246→                        <TooltipContent side="top" className="text-xs">
+   247→                          <div className="font-mono">{room.roomCode} · {h.hour}:00</div>
+   248→                          <div>Power: <b>{h.kW ?? h.kw} kW</b></div>
+   249→                          <div>Status: {h.isGhost ? '🔴 Ghost Load' : h.isProd ? '🔵 Production' : '🟢 Idle'}</div>
+   250→                        </TooltipContent>
+   251→                      </Tooltip>
+   252→                    </TooltipProvider>
+   253→                  )
+   254→                })}
+   255→              </div>
+   256→            </div>
+   257→          ))}
+   258→        </div>
+   259→        {/* Legend */}
+   260→        <div className="flex items-center gap-4 mt-3 ml-[120px] text-[10px] text-muted-foreground">
+   261→          <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.7)' }} /> Ghost Load</div>
+   262→          <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(14, 165, 233, 0.4)' }} /> Production</div>
+   263→          <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)' }} /> Idle</div>
+   264→        </div>
+   265→      </div>
+   266→    </div>
+   267→  )
+   268→}
+   269→
+   270→function SavingsTrendChart({ data }: { data: AnalyticsData['trend'] }) {
+   271→  return (
+   272→    <ResponsiveContainer width="100%" height={240}>
+   273→      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+   274→        <defs>
+   275→          <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
+   276→            <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
+   277→            <stop offset="100%" stopColor="#10b981" stopOpacity={0.4} />
+   278→          </linearGradient>
+   279→        </defs>
+   280→        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+   281→        <XAxis dataKey="day" tick={{ fontSize: 9 }} stroke="#9ca3af" interval={4} />
+   282→        <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" unit=" RM" />
+   283→        <RTooltip
+   284→          contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+   285→          formatter={(v: any) => [formatRM(v), 'Savings']}
+   286→        />
+   287→        <Bar dataKey="rm" fill="url(#savingsGrad)" radius={[3, 3, 0, 0]} />
+   288→      </BarChart>
+   289→    </ResponsiveContainer>
+   290→  )
+   291→}
+   292→
+   293→function EnergyMixChart({ data }: { data: AnalyticsData['energyMix'] }) {
+   294→  const colors = ['#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#8b5cf6', '#ec4899']
+   295→  return (
+   296→    <ResponsiveContainer width="100%" height={240}>
+   297→      <BarChart data={data} layout="vertical" margin={{ top: 8, right: 8, left: 80, bottom: 0 }}>
+   298→        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+   299→        <XAxis type="number" tick={{ fontSize: 10 }} stroke="#9ca3af" unit=" kW" />
+   300→        <YAxis type="category" dataKey="zone" tick={{ fontSize: 10 }} stroke="#9ca3af" width={70} />
+   301→        <RTooltip
+   302→          contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+   303→          formatter={(v: any, _name: string, props: any) => [`${v} kW (${props.payload.rooms} rooms, ${props.payload.ghostRooms} ghost)`, 'Power']}
+   304→        />
+   305→        <Bar dataKey="kw" radius={[0, 4, 4, 0]}>
+   306→          {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+   307→        </Bar>
+   308→      </BarChart>
+   309→    </ResponsiveContainer>
+   310→  )
+   311→}
+   312→
+   313→// ============================================================================
+   314→// MULTI-ZONE 24H COMPARISON CHART
+   315→// ============================================================================
+   316→
+   317→function MultiZoneComparison() {
+   318→  const [data, setData] = useState<MultiZoneData | null>(null)
+   319→  const [loading, setLoading] = useState(true)
+   320→  const [visibleRooms, setVisibleRooms] = useState<Set<string>>(new Set())
+   321→
+   322→  useEffect(() => {
+   323→    fetch('/api/multi-zone')
+   324→      .then(r => r.json())
+   325→      .then(d => {
+   326→        setData(d)
+   327→        // Show all rooms by default except CR-03/CR-04 (blast freezers have different scale)
+   328→        setVisibleRooms(new Set(d.rooms.map((r: any) => r.code)))
+   329→      })
+   330→      .catch(e => console.error('multi-zone fetch failed', e))
+   331→      .finally(() => setLoading(false))
+   332→  }, [])
+   333→
+   334→  if (loading || !data) {
+   335→    return (
+   336→      <Card className="border-border/60">
+   337→        <CardContent className="p-6 grid place-items-center h-[300px]">
+   338→          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+   339→        </CardContent>
+   340→      </Card>
+   341→    )
+   342→  }
+   343→
+   344→  // Transform for Recharts: [{ hour: 0, 'CR-01': 12.5, 'CR-02': 13.2, ... }]
+   345→  const chartData = data.hours.map(h => {
+   346→    const row: any = { hour: h.label }
+   347→    for (const room of data.rooms) {
+   348→      if (visibleRooms.has(room.code)) {
+   349→        const point = room.data.find(d => d.hour === h.hour)
+   350→        row[room.code] = point?.kw || 0
+   351→      }
+   352→    }
+   353→    return row
+   354→  })
+   355→
+   356→  const toggleRoom = (code: string) => {
+   357→    setVisibleRooms(prev => {
+   358→      const next = new Set(prev)
+   359→      if (next.has(code)) next.delete(code)
+   360→      else next.add(code)
+   361→      return next
+   362→    })
+   363→  }
+   364→
+   365→  return (
+   366→    <Card className="border-border/60">
+   367→      <CardHeader className="pb-2">
+   368→        <div className="flex items-start justify-between flex-wrap gap-2">
+   369→          <div>
+   370→            <CardTitle className="text-base flex items-center gap-2">
+   371→              <Layers className="h-4 w-4 text-primary" />
+   372→              24-Hour Multi-Zone Power Comparison
+   373→            </CardTitle>
+   374→            <CardDescription className="text-xs">
+   375→              {data.summary.roomCount} rooms · Peak {data.summary.peakKW} kW at {String(data.summary.peakHour).padStart(2,'0')}:00 · {data.summary.ghostHours} ghost-load hours · Avg {data.summary.totalKW} kW
+   376→            </CardDescription>
+   377→          </div>
+   378→        </div>
+   379→      </CardHeader>
+   380→      <CardContent>
+   381→        {/* Room toggle chips */}
+   382→        <div className="flex flex-wrap gap-1.5 mb-3">
+   383→          {data.rooms.map(r => (
+   384→            <button
+   385→              key={r.code}
+   386→              onClick={() => toggleRoom(r.code)}
+   387→              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
+   388→                visibleRooms.has(r.code)
+   389→                  ? 'border-border/60 bg-card shadow-sm'
+   390→                  : 'border-border/30 bg-muted/30 opacity-40'
+   391→              }`}
+   392→            >
+   393→              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
+   394→              {r.code}
+   395→              <span className="text-muted-foreground">{r.maxPowerKW}kW</span>
+   396→            </button>
+   397→          ))}
+   398→        </div>
+   399→
+   400→        {/* Multi-line chart */}
+   401→        <ResponsiveContainer width="100%" height={280}>
+   402→          <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+   403→            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+   404→            <XAxis dataKey="hour" tick={{ fontSize: 9 }} stroke="#9ca3af" interval={2} />
+   405→            <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" unit=" kW" />
+   406→            <RTooltip
+   407→              contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+   408→              formatter={(v: any, name: string) => [`${v} kW`, name]}
+   409→            />
+   410→            {data.rooms.filter(r => visibleRooms.has(r.code)).map(r => (
+   411→              <Line
+   412→                key={r.code}
+   413→                type="monotone"
+   414→                dataKey={r.code}
+   415→                stroke={r.color}
+   416→                strokeWidth={2}
+   417→                dot={false}
+   418→                activeDot={{ r: 4 }}
+   419→              />
+   420→            ))}
+   421→          </LineChart>
+   422→        </ResponsiveContainer>
+   423→
+   424→        {/* Legend with current values */}
+   425→        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-border/60">
+   426→          {data.rooms.filter(r => visibleRooms.has(r.code)).map(r => {
+   427→            const currentKW = r.data[r.data.length - 1]?.kw || 0
+   428→            const peakRoomKW = Math.max(...r.data.map(d => d.kw))
+   429→            return (
+   430→              <div key={r.code} className="flex items-center gap-2">
+   431→                <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
+   432→                <div className="min-w-0">
+   433→                  <div className="text-[10px] font-medium truncate">{r.code} · {r.name}</div>
+   434→                  <div className="text-[9px] text-muted-foreground">Now {currentKW}kW · Peak {peakRoomKW}kW</div>
+   435→                </div>
+   436→              </div>
+   437→            )
+   438→          })}
+   439→        </div>
+   440→      </CardContent>
+   441→    </Card>
+   442→  )
+   443→}
+   444→
+   445→// ============================================================================
+   446→// ROOM COMPARISON RADAR CHART
+   447→// ============================================================================
+   448→
+   449→function RoomComparisonRadar() {
+   450→  const [data, setData] = useState<RoomComparisonData | null>(null)
+   451→  const [loading, setLoading] = useState(true)
+   452→  const [visibleRooms, setVisibleRooms] = useState<Set<string>>(new Set())
+   453→
+   454→  useEffect(() => {
+   455→    fetch('/api/room-comparison')
+   456→      .then(r => r.json())
+   457→      .then(d => {
+   458→        setData(d)
+   459→        // Show first 4 rooms by default
+   460→        setVisibleRooms(new Set(d.rooms.slice(0, 4).map((r: any) => r.code)))
+   461→      })
+   462→      .catch(e => console.error('room comparison fetch failed', e))
+   463→      .finally(() => setLoading(false))
+   464→  }, [])
+   465→
+   466→  if (loading || !data) {
+   467→    return (
+   468→      <Card className="border-border/60">
+   469→        <CardContent className="p-6 grid place-items-center h-[300px]">
+   470→          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+   471→        </CardContent>
+   472→      </Card>
+   473→    )
+   474→  }
+   475→
+   476→  // Transform for Recharts radar: [{ axis: 'Temp Compliance', 'CR-01': 96, 'CR-02': 99, ... }]
+   477→  const chartData = data.axes.map(axis => {
+   478→    const row: any = { axis: axis.label }
+   479→    for (const room of data.rooms) {
+   480→      if (visibleRooms.has(room.code)) {
+   481→        row[room.code] = room.metrics[axis.key as keyof typeof room.metrics]
+   482→      }
+   483→    }
+   484→    return row
+   485→  })
+   486→
+   487→  const toggleRoom = (code: string) => {
+   488→    setVisibleRooms(prev => {
+   489→      const next = new Set(prev)
+   490→      if (next.has(code)) next.delete(code)
+   491→      else next.add(code)
+   492→      return next
+   493→    })
+   494→  }
+   495→
+   496→  const visibleRoomsData = data.rooms.filter(r => visibleRooms.has(r.code))
+   497→
+   498→  return (
+   499→    <Card className="border-border/60">
+   500→      <CardHeader className="pb-2">
+   501→        <div className="flex items-start justify-between flex-wrap gap-2">
+   502→          <div>
+   503→            <CardTitle className="text-base flex items-center gap-2">
+   504→              <Target className="h-4 w-4 text-primary" />
+   505→              Room Comparison Radar
+   506→            </CardTitle>
+   507→            <CardDescription className="text-xs">
+   508→              5-dimension comparison: temp compliance, compressor load, utilization, ghost hours, RM waste · {visibleRooms.size} of {data.rooms.length} rooms shown
+   509→            </CardDescription>
+   510→          </div>
+   511→        </div>
+   512→      </CardHeader>
+   513→      <CardContent>
+   514→        <div className="grid gap-4 lg:grid-cols-2">
+   515→          {/* Radar chart */}
+   516→          <div>
+   517→            <ResponsiveContainer width="100%" height={320}>
+   518→              <RadarChart data={chartData} margin={{ top: 16, right: 16, left: 16, bottom: 16 }}>
+   519→                <PolarGrid stroke="#e5e7eb" />
+   520→                <PolarAngleAxis dataKey="axis" tick={{ fontSize: 10, fill: '#6b7280' }} />
+   521→                <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 8, fill: '#9ca3af' }} />
+   522→                <RTooltip
+   523→                  contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e5e7eb' }}
+   524→                  formatter={(v: any, name: string) => [`${v}`, name]}
+   525→                />
+   526→                {visibleRoomsData.map(r => (
+   527→                  <Radar
+   528→                    key={r.code}
+   529→                    name={r.code}
+   530→                    dataKey={r.code}
+   531→                    stroke={r.color}
+   532→                    fill={r.color}
+   533→                    fillOpacity={0.15}
+   534→                    strokeWidth={2}
+   535→                  />
+   536→                ))}
+   537→                <Legend wrapperStyle={{ fontSize: 10 }} />
+   538→              </RadarChart>
+   539→            </ResponsiveContainer>
+   540→          </div>
+   541→
+   542→          {/* Room toggle + details */}
+   543→          <div className="space-y-3">
+   544→            {/* Toggle chips */}
+   545→            <div className="flex flex-wrap gap-1.5">
+   546→              {data.rooms.map(r => (
+   547→                <button
+   548→                  key={r.code}
+   549→                  onClick={() => toggleRoom(r.code)}
+   550→                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
+   551→                    visibleRooms.has(r.code)
+   552→                      ? 'border-border/60 bg-card shadow-sm'
+   553→                      : 'border-border/30 bg-muted/30 opacity-40'
+   554→                  }`}
+   555→                >
+   556→                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
+   557→                  {r.code}
+   558→                  {r.raw.isGhost && <span className="h-1 w-1 rounded-full bg-red-500 animate-pulse" />}
+   559→                </button>
+   560→              ))}
+   561→            </div>
+   562→
+   563→            {/* Selected rooms detail table */}
+   564→            <div className="space-y-1.5 max-h-[260px] overflow-y-auto">
+   565→              {visibleRoomsData.map(r => (
+   566→                <div key={r.code} className="rounded-md border border-border/60 p-2 text-xs">
+   567→                  <div className="flex items-center justify-between mb-1.5">
+   568→                    <div className="flex items-center gap-2">
+   569→                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+   570→                      <span className="font-medium">{r.code}</span>
+   571→                      <span className="text-[10px] text-muted-foreground truncate">{r.name}</span>
+   572→                      {r.raw.isGhost && <Badge variant="outline" className="text-[9px] text-red-700 border-red-300">GHOST</Badge>}
+   573→                    </div>
+   574→                    <span className="text-[10px] text-muted-foreground font-mono">{r.raw.currentTemp}°C / {r.raw.powerKW}kW</span>
+   575→                  </div>
+   576→                  <div className="grid grid-cols-5 gap-1 text-[9px]">
+   577→                    <MetricCell label="Temp" value={r.metrics.tempCompliance} invert={false} />
+   578→                    <MetricCell label="Load" value={r.metrics.compressorLoad} invert={true} />
+   579→                    <MetricCell label="Util" value={r.metrics.utilization} invert={false} />
+   580→                    <MetricCell label="Ghost" value={r.metrics.ghostHours} invert={true} />
+   581→                    <MetricCell label="RM" value={r.metrics.rmWaste} invert={true} />
+   582→                  </div>
+   583→                </div>
+   584→              ))}
+   585→            </div>
+   586→          </div>
+   587→        </div>
+   588→      </CardContent>
+   589→    </Card>
+   590→  )
+   591→}
+   592→
+   593→function MetricCell({ label, value, invert }: { label: string; value: number; invert: boolean }) {
+   594→  // invert=true means lower is better (red high), invert=false means higher is better (green high)
+   595→  const color = invert
+   596→    ? value > 66 ? 'text-red-600' : value > 33 ? 'text-amber-600' : 'text-emerald-600'
+   597→    : value > 66 ? 'text-emerald-600' : value > 33 ? 'text-amber-600' : 'text-red-600'
+   598→  return (
+   599→    <div className="text-center">
+   600→      <div className="text-[8px] text-muted-foreground uppercase">{label}</div>
+   601→      <div className={`font-bold ${color}`}>{value}</div>
+   602→    </div>
+   603→  )
+   604→}
+   605→

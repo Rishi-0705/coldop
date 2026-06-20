@@ -22,7 +22,7 @@ const severityColors: Record<string, { dot: string; text: string; bg: string; bo
   CRITICAL: { dot: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50/50', border: 'border-red-200' },
   HIGH: { dot: 'bg-orange-500', text: 'text-orange-700', bg: 'bg-orange-50/50', border: 'border-orange-200' },
   MEDIUM: { dot: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50/50', border: 'border-amber-200' },
-  LOW: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50/50', border: 'border-emerald-200' },
+  LOW: { dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50/50', border: 'border-blue-200' },
 }
 
 export function ActivityFeed() {
@@ -51,7 +51,7 @@ export function ActivityFeed() {
             <CardTitle className="text-base flex items-center gap-2">
               <ActivityIcon className="h-4 w-4 text-primary" />
               Live Activity Feed
-              <LiveDot color="bg-emerald-500" size="h-1.5 w-1.5" />
+              <LiveDot color="bg-blue-500" size="h-1.5 w-1.5" />
             </CardTitle>
             <CardDescription className="text-xs">
               {loading ? 'Loading...' : `${data?.stats.total || 0} events · ${data?.stats.last24h || 0} in last 24h · ${formatRM(data?.stats.totalRmImpact || 0)} total impact`}

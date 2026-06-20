@@ -44,6 +44,9 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
             Production Schedule
           </h2>
           <p className="text-sm text-muted-foreground">Shift rosters · batch timing · ghost load windows detected</p>
+          <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            Renders an interactive <b>Gantt chart</b> of production batches across every line for the last 12 hours + next 24 hours. The <b>deterministic ghost load detector</b> scans the schedule for idle gaps ≥2h between batches and overlays them as dashed red <b>GHOST windows</b> — these are the future opportunities the setback engine can act on automatically. This is the planning surface that lets the operations team pre-approve setbacks for tonight’s idle windows before they cost money.
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={onRefresh}>
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
@@ -89,7 +92,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
                         <div className="text-xs font-medium truncate">{line.line}</div>
                         <div className="flex items-center gap-1">
                           {isRunning ? (
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
                           ) : (
                             <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
                           )}
@@ -114,7 +117,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div
-                                    className="absolute top-1 bottom-1 rounded bg-emerald-500/80 hover:bg-emerald-600 cursor-pointer flex items-center px-1 overflow-hidden"
+                                    className="absolute top-1 bottom-1 rounded bg-blue-500/80 hover:bg-blue-600 cursor-pointer flex items-center px-1 overflow-hidden"
                                     style={{ left: `${Math.max(0, left)}%`, width: `${Math.min(100 - left, width)}%` }}
                                   >
                                     <span className="text-[8px] text-white font-mono truncate">{b.batchId}</span>
@@ -176,7 +179,7 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
         <CardContent>
           {ghostWindows.length === 0 ? (
             <div className="text-sm text-muted-foreground py-4 text-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+              <CheckCircle2 className="h-8 w-8 text-blue-500 mx-auto mb-2" />
               No ghost load windows detected in the next 24h.
             </div>
           ) : (
@@ -218,10 +221,10 @@ export function ScheduleView({ schedule, onRefresh }: { schedule: ProductionSche
               const isCurrent = new Date(s.startTime) <= now && new Date(s.endTime) >= now
               const isFuture = new Date(s.startTime) > now
               return (
-                <div key={s.id} className={`rounded-lg border p-3 ${isCurrent ? 'border-emerald-300 bg-emerald-50/50' : isFuture ? 'border-border/60' : 'border-border/40 opacity-60'}`}>
+                <div key={s.id} className={`rounded-lg border p-3 ${isCurrent ? 'border-blue-300 bg-blue-50/50' : isFuture ? 'border-border/60' : 'border-border/40 opacity-60'}`}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono font-semibold text-sm">{s.batchId}</span>
-                    {isCurrent && <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-300">Live</Badge>}
+                    {isCurrent && <Badge variant="outline" className="text-[10px] text-blue-700 border-blue-300">Live</Badge>}
                     {isFuture && <Badge variant="outline" className="text-[10px]">Upcoming</Badge>}
                     {isPast && <Badge variant="outline" className="text-[10px] text-muted-foreground">Done</Badge>}
                   </div>

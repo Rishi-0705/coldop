@@ -181,6 +181,9 @@ export function CameraScan() {
         <p className="text-sm text-muted-foreground mt-1">
           Real webcam + VLM AI identifies products, counts amounts, and detects temperature/spec anomalies. System ranks issues by severity and generates actionable recommendations.
         </p>
+        <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+          Captures a live webcam frame (or uploaded image) and POSTs it to the server-side <b>z-ai-web-dev-sdk VLM</b>, which returns product name, count, visible text, and confidence. The result is fuzzy-matched against the <b>Marigold product catalog</b> (safe temp range, shelf life, allergens), then re-scored on the same severity formula used everywhere else in ColdOps. This is the human-in-the-loop input layer: it lets a supervisor on the shop floor turn a quick phone snap into a routed, quantified, approvable action — closing the gap between what the BMS sees and what is actually inside the room.
+        </p>
       </div>
 
       {/* Mode selector + controls */}
@@ -241,7 +244,7 @@ export function CameraScan() {
                   <X className="h-3.5 w-3.5" /> Stop Camera
                 </Button>
               )}
-              <Button size="sm" className="h-7 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700" onClick={captureAndScan} disabled={!cameraActive || scanning}>
+              <Button size="sm" className="h-7 text-xs gap-1.5 bg-blue-600 hover:bg-blue-700" onClick={captureAndScan} disabled={!cameraActive || scanning}>
                 {scanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scan className="h-3.5 w-3.5" />}
                 {scanning ? 'Scanning...' : 'Capture & Scan'}
               </Button>
@@ -254,7 +257,7 @@ export function CameraScan() {
         {/* Camera feed */}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <SectionHeader icon={Camera} title="Live Camera Feed" description="Real webcam stream — capture a frame to send to VLM for product identification" />
+            <SectionHeader icon={Camera} title="Live Camera Feed" description="Real webcam stream — capture a frame to send to VLM for product identification" detailed="Uses the browser <b>getUserMedia API</b> to stream a 640×480 webcam feed, then on capture draws the current frame to a hidden <b>canvas</b> and encodes it as base64 JPEG. That image is the only thing sent to the VLM — no continuous video upload. This is the sensor that replaces an expensive fixed camera pipeline: any laptop or phone with a webcam becomes a ColdOps inspection terminal." />
           </CardHeader>
           <CardContent>
             <div className="relative aspect-video bg-zinc-900 rounded-lg overflow-hidden">
@@ -310,7 +313,7 @@ export function CameraScan() {
         {/* Current scan result */}
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <SectionHeader icon={Scan} title="Detection Result" description="VLM product identification + system recommendation ranked by severity" />
+            <SectionHeader icon={Scan} title="Detection Result" description="VLM product identification + system recommendation ranked by severity" detailed="Renders the structured VLM response (product, count, category, visible text, confidence) alongside the <b>matched catalog spec</b> (safe temp range, shelf life, allergens) and any issues found — temperature out of range, low stock, near-expiry, unknown product. The bottom card surfaces the system recommendation with a one-tap <b>Approve &amp; Execute</b> that dispatches the corresponding work order or setback — the same approval flow used by every other ColdOps engine." />
           </CardHeader>
           <CardContent>
             {!currentResult ? (
@@ -335,7 +338,7 @@ export function CameraScan() {
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <SectionHeader icon={List} title={`Batch Scan Results — ${scanResults.length} items scanned`} description="Sorted by severity score (highest first) — tackle the most critical issues first" />
+              <SectionHeader icon={List} title={`Batch Scan Results — ${scanResults.length} items scanned`} description="Sorted by severity score (highest first) — tackle the most critical issues first" detailed="Holds multiple scans in memory and re-sorts them by the same <b>severity score</b> used across ColdOps (RM impact × 0.5 + duration × 10 + safety + room criticality). Rank 1 is always the single most expensive issue to fix next — turning a shelf-walk into a prioritized work queue." />
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearBatch}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Clear
               </Button>
@@ -400,8 +403,8 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
 
       {/* Matched product spec */}
       {result.matchedProduct ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
-          <div className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide mb-1">Matched Product Spec</div>
+        <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+          <div className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide mb-1">Matched Product Spec</div>
           <div className="text-xs font-medium">{result.matchedProduct.productName}</div>
           <div className="grid grid-cols-3 gap-2 mt-2 text-[10px]">
             <div>
@@ -437,7 +440,7 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
             {result.matchedProduct && (
               <div className="text-[10px]">
                 <div className="text-muted-foreground">Safe range: {result.matchedProduct.minTemp}°C - {result.matchedProduct.maxTemp}°C</div>
-                <div className={`font-medium ${result.temperature > result.matchedProduct.maxTemp ? 'text-red-600' : result.temperature < result.matchedProduct.minTemp ? 'text-amber-600' : 'text-emerald-600'}`}>
+                <div className={`font-medium ${result.temperature > result.matchedProduct.maxTemp ? 'text-red-600' : result.temperature < result.matchedProduct.minTemp ? 'text-amber-600' : 'text-blue-600'}`}>
                   {result.temperature > result.matchedProduct.maxTemp ? 'TOO HIGH' : result.temperature < result.matchedProduct.minTemp ? 'TOO LOW' : 'IN RANGE'}
                 </div>
               </div>
@@ -474,7 +477,7 @@ function ScanResultView({ result, onApprove }: { result: ScanResult; onApprove: 
         <div className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">System Recommendation</div>
         <div className="text-sm font-medium">{result.recommendation.recommendation}</div>
         {result.recommendation.actionType !== 'NONE' && (
-          <Button size="sm" className="mt-2 bg-emerald-600 hover:bg-emerald-700 gap-1.5" onClick={onApprove}>
+          <Button size="sm" className="mt-2 bg-blue-600 hover:bg-blue-700 gap-1.5" onClick={onApprove}>
             <Check className="h-3.5 w-3.5" /> Approve & Execute ({result.recommendation.actionType.replace(/_/g, ' ')})
           </Button>
         )}

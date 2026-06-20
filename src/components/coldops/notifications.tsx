@@ -70,6 +70,9 @@ export function NotificationsView({ notifs, counts, onAction }: { notifs: Notifi
             Alerts & Notifications
           </h2>
           <p className="text-sm text-muted-foreground">Severity-sorted · approve to trigger automated response · click for full detail</p>
+          <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            Central queue for every actionable event ColdOps detects — <b>ghost load</b>, <b>consolidation candidate</b>, <b>setback opportunity</b>, <b>safety</b>, and <b>system</b> alerts. Each notification carries an <b>RM impact</b>, an <b>actionType</b> (APPROVE_SETBACK / GENERATE_WORK_ORDER / NONE), and a <b>severity badge</b> computed from the same scoring formula used everywhere else. One-tap <b>Approve</b> fires the corresponding engine — the human stays in the loop on every money-moving decision.
+          </p>
         </div>
         <SeverityTabs counts={counts} active={filter} onChange={setFilter} />
       </div>
@@ -92,7 +95,7 @@ export function NotificationsView({ notifs, counts, onAction }: { notifs: Notifi
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Card className="border-dashed">
                 <CardContent className="p-12 text-center">
-                  <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-3" />
+                  <CheckCircle2 className="h-12 w-12 text-blue-500 mx-auto mb-3" />
                   <div className="text-lg font-medium">All clear</div>
                   <div className="text-sm text-muted-foreground">No notifications match this filter.</div>
                 </CardContent>
@@ -136,7 +139,7 @@ export function NotificationsView({ notifs, counts, onAction }: { notifs: Notifi
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {isOpen && n.actionType && n.actionType !== 'NONE' && (
                             <>
-                              <Button size="sm" className="h-7 bg-emerald-600 hover:bg-emerald-700 text-xs" onClick={(e) => { e.stopPropagation(); act(n.id, 'approve') }} disabled={acting === n.id}>
+                              <Button size="sm" className="h-7 bg-blue-600 hover:bg-blue-700 text-xs" onClick={(e) => { e.stopPropagation(); act(n.id, 'approve') }} disabled={acting === n.id}>
                                 {acting === n.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
                                 <span className="ml-1">Approve</span>
                               </Button>
@@ -237,7 +240,7 @@ function NotificationDetailModal({ notifId, onClose, onAction, acting }: { notif
               {/* Action buttons */}
               {notif.status === 'OPEN' && notif.actionType && notif.actionType !== 'NONE' && (
                 <div className="flex items-center gap-2">
-                  <Button className="bg-emerald-600 hover:bg-emerald-700 flex-1" onClick={() => onAction(notif.id, 'approve')} disabled={acting === notif.id}>
+                  <Button className="bg-blue-600 hover:bg-blue-700 flex-1" onClick={() => onAction(notif.id, 'approve')} disabled={acting === notif.id}>
                     {acting === notif.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
                     Approve & Execute
                   </Button>
@@ -368,10 +371,10 @@ function getTypeIcon(type: string) {
 
 function getTimelineDotColor(event: string): string {
   if (event.includes('CREATED')) return 'bg-sky-500'
-  if (event.includes('APPROVED')) return 'bg-emerald-500'
+  if (event.includes('APPROVED')) return 'bg-blue-500'
   if (event.includes('DEFERRED')) return 'bg-amber-500'
   if (event.includes('DISMISSED')) return 'bg-zinc-400'
-  if (event.includes('RESOLVED') || event.includes('COMPLETED')) return 'bg-emerald-500'
+  if (event.includes('RESOLVED') || event.includes('COMPLETED')) return 'bg-blue-500'
   if (event.includes('DETECTED')) return 'bg-red-500'
   if (event.includes('SETBACK')) return 'bg-amber-500'
   if (event.includes('WORK_ORDER')) return 'bg-purple-500'
@@ -380,8 +383,8 @@ function getTimelineDotColor(event: string): string {
 
 function getTimelineBadgeColor(event: string): string {
   if (event.includes('CREATED')) return 'text-sky-700 border-sky-300'
-  if (event.includes('APPROVED')) return 'text-emerald-700 border-emerald-300'
-  if (event.includes('RESOLVED') || event.includes('COMPLETED')) return 'text-emerald-700 border-emerald-300'
+  if (event.includes('APPROVED')) return 'text-blue-700 border-blue-300'
+  if (event.includes('RESOLVED') || event.includes('COMPLETED')) return 'text-blue-700 border-blue-300'
   if (event.includes('DETECTED')) return 'text-red-700 border-red-300'
   if (event.includes('SETBACK')) return 'text-amber-700 border-amber-300'
   return 'text-muted-foreground'

@@ -82,7 +82,7 @@ export function Sidebar({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-primary-foreground/60' : 'bg-emerald-500'}`} />
+                        <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-primary-foreground/60' : 'bg-blue-500'}`} />
                       </TooltipTrigger>
                       <TooltipContent side="right" className="text-xs">
                         <div className="font-semibold">Flagship Feature</div>
@@ -103,9 +103,9 @@ export function Sidebar({
       {/* 3 Flagship highlights */}
       <div className="p-3 border-t border-border/60 space-y-1.5">
         <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide px-1">3 Flagship Features</div>
-        <FlagshipBadge icon={Zap} label="Main Detection" description="Cross-references smart meter data with production schedules to detect compressors running at full power during non-production hours. Deterministic rules for explainability." />
-        <FlagshipBadge icon={Package} label="Fill the Gap" description="Identifies underutilized cold rooms (<25%) and generates FEFO-sequenced consolidation plans with allergen checks + net benefit calculation." />
-        <FlagshipBadge icon={ThermometerSun} label="Progressive Setback" description="Ramps temperature gradually (4°C→8°C) via real BMS API commands with readback confirmations + safety auto-abort." />
+        <FlagshipBadge icon={Zap} label="Main Detection" description="Cross-references smart meter data with production schedules to detect compressors running at full power during non-production hours. Uses deterministic rules (not ML) for full explainability — every alert tells you exactly why it fired. This is the core of ColdOps: making invisible energy waste visible and quantifiable in Ringgit." />
+        <FlagshipBadge icon={Package} label="Fill the Gap" description="Identifies underutilized cold rooms (below 25% capacity) and generates FEFO-sequenced consolidation plans with allergen segregation checks. Calculates net benefit (energy saving minus labor cost) before dispatching work orders to warehouse staff. Solves the 'scattered stock' problem where multiple half-empty rooms waste energy." />
+        <FlagshipBadge icon={ThermometerSun} label="Progressive Setback" description="Ramps temperature gradually (4°C to 8°C in 4 steps) via real HTTP BMS API commands with readback confirmations at each step. Safety guardrails monitor temperature every 1.5 seconds and auto-abort if readings leave the safe range. Protects equipment longevity while reducing compressor load by 40%." />
       </div>
 
       {/* Status indicators */}
@@ -118,7 +118,7 @@ export function Sidebar({
           </Button>
         </div>
         {savings && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-medium">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-medium">
             <TrendingDown className="h-3 w-3" />
             {formatRM(savings.tonightRM)} saved tonight
           </div>
@@ -152,9 +152,12 @@ function FlagshipBadge({ icon: Icon, label, description }: { icon: any; label: s
             <BadgeHelp className="h-2.5 w-2.5 text-muted-foreground/50 ml-auto" />
           </div>
         </TooltipTrigger>
-        <TooltipContent side="right" className="max-w-[260px] text-xs">
+        <TooltipContent side="right" className="max-w-[280px] text-xs">
           <div className="font-semibold mb-1">{label}</div>
-          <div className="text-[10px] leading-relaxed">{description}</div>
+          <div 
+            className="text-[10px] leading-relaxed [&_b]:font-semibold [&_b]:text-foreground"
+            dangerouslySetInnerHTML={{ __html: description }}
+          />
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -163,8 +166,8 @@ function FlagshipBadge({ icon: Icon, label, description }: { icon: any; label: s
 
 function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${ok ? 'text-emerald-700' : 'text-zinc-500'}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${ok ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
+    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${ok ? 'text-blue-700' : 'text-zinc-500'}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${ok ? 'bg-blue-500 animate-pulse' : 'bg-zinc-400'}`} />
       {label}
     </div>
   )
@@ -348,20 +351,26 @@ export function ActiveSetbackCard({ setback }: { setback: ActiveSetback }) {
   )
 }
 
-export function SectionHeader({ icon: Icon, title, description, flagship }: { icon: any; title: string; description: string; flagship?: string }) {
+export function SectionHeader({ icon: Icon, title, description, flagship, detailed }: { icon: any; title: string; description: string; flagship?: string; detailed?: string }) {
   return (
-    <div className="mb-3">
+    <div className="mb-4">
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-primary" />
         <h3 className="text-base font-semibold">{title}</h3>
         {flagship && (
-          <Badge className="text-[9px] bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+          <Badge className="text-[9px] bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200">
             <Target className="h-2.5 w-2.5 mr-1" />
             {flagship}
           </Badge>
         )}
       </div>
-      <p className="text-xs text-muted-foreground mt-0.5 ml-6">{description}</p>
+      <p className="text-xs text-muted-foreground mt-1 ml-6 leading-relaxed">{description}</p>
+      {detailed && (
+        <p 
+          className="text-[11px] text-muted-foreground/80 mt-1.5 ml-6 leading-relaxed [&_b]:font-semibold [&_b]:text-foreground"
+          dangerouslySetInnerHTML={{ __html: detailed }}
+        />
+      )}
     </div>
   )
 }

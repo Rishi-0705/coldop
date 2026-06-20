@@ -61,6 +61,9 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
             Factory Floor — Cold Room Map
           </h2>
           <p className="text-sm text-muted-foreground">Marigold PJ · 8 rooms · real-time BMS telemetry</p>
+          <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            Renders the factory floor as an <b>SVG-positioned grid of rooms</b>, each tile color-coded by its current ColdOps status (ghost load = red, consolidation candidate = amber, optimized = blue, active production = sky, idle = zinc). Clicking a room opens its live <b>BMS telemetry</b> (temp, compressor kW, setpoint) and WMS pallet inventory side-by-side — so the supervisor can see in one glance why a room is wasting energy and what is physically inside it.
+          </p>
         </div>
         <Legend />
       </div>
@@ -113,7 +116,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <div className="text-muted-foreground">Energy saving</div>
-                    <div className="font-semibold text-emerald-700">{formatRM(plan.energySavingRM)}</div>
+                    <div className="font-semibold text-blue-700">{formatRM(plan.energySavingRM)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Labor cost</div>
@@ -121,7 +124,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
                   </div>
                   <div>
                     <div className="text-muted-foreground">Net benefit</div>
-                    <div className="font-bold text-emerald-700">{formatRM(plan.netBenefitRM)}</div>
+                    <div className="font-bold text-blue-700">{formatRM(plan.netBenefitRM)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Est. labor</div>
@@ -156,7 +159,7 @@ export function ColdRoomMap({ rooms, plan, onExecutePlan }: { rooms: RoomWithBms
                         <div className="flex items-center gap-1 text-[10px] font-mono">
                           <span className="px-1 rounded bg-red-50 text-red-700">{m.fromRoomCode}:{m.fromBayCode}</span>
                           <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                          <span className="px-1 rounded bg-emerald-50 text-emerald-700">{m.toRoomCode}:{m.toBayCode}</span>
+                          <span className="px-1 rounded bg-blue-50 text-blue-700">{m.toRoomCode}:{m.toBayCode}</span>
                         </div>
                       </div>
                     ))}
@@ -205,7 +208,7 @@ function FloorPlan({ rooms, selected, onSelect, plan }: { rooms: RoomWithBms[]; 
           <button
             key={r.id}
             onClick={() => onSelect(r.id)}
-            className={`absolute rounded-md border-2 transition-all ${isSel ? 'ring-2 ring-primary ring-offset-1 z-10' : ''} ${isSource ? 'ring-2 ring-amber-400' : ''} ${isDest ? 'ring-2 ring-emerald-500' : ''}`}
+            className={`absolute rounded-md border-2 transition-all ${isSel ? 'ring-2 ring-primary ring-offset-1 z-10' : ''} ${isSource ? 'ring-2 ring-amber-400' : ''} ${isDest ? 'ring-2 ring-blue-500' : ''}`}
             style={{
               left: `${r.floorX}%`,
               top: `${r.floorY}%`,
@@ -227,7 +230,7 @@ function FloorPlan({ rooms, selected, onSelect, plan }: { rooms: RoomWithBms[]; 
                 <div>
                   <div className="text-[8px] text-zinc-500">{r.utilizationPct}%</div>
                   <div className="h-1 w-12 bg-white/60 rounded-full overflow-hidden">
-                    <div className={`h-full ${isGhost ? 'bg-red-500' : isConsolidation ? 'bg-amber-500' : isOptimized ? 'bg-emerald-500' : 'bg-sky-500'}`} style={{ width: `${r.utilizationPct}%` }} />
+                    <div className={`h-full ${isGhost ? 'bg-red-500' : isConsolidation ? 'bg-amber-500' : isOptimized ? 'bg-blue-500' : 'bg-sky-500'}`} style={{ width: `${r.utilizationPct}%` }} />
                   </div>
                 </div>
                 {r.bms && (
@@ -460,7 +463,7 @@ function RoomDetailModal({ roomCode, onClose }: { roomCode: string | null; onClo
                 <div><span className="text-muted-foreground">Allergens:</span> <span className="font-medium">{detail.stats.allergensPresent.join(', ') || 'None'}</span></div>
                 <div><span className="text-muted-foreground">Earliest expiry:</span> <span className="font-medium">{detail.stats.earliestExpiry ? new Date(detail.stats.earliestExpiry).toLocaleDateString('en-MY', { day: '2-digit', month: 'short' }) : '—'}</span></div>
                 <div><span className="text-muted-foreground">Idle baseline:</span> <span className="font-mono">{formatKW(detail.stats.idleBaselineKW)}</span></div>
-                <div><span className="text-muted-foreground">Ghost load:</span> <span className={`font-medium ${detail.stats.isGhostLoad ? 'text-red-600' : 'text-emerald-600'}`}>{detail.stats.isGhostLoad ? 'Yes' : 'No'}</span></div>
+                <div><span className="text-muted-foreground">Ghost load:</span> <span className={`font-medium ${detail.stats.isGhostLoad ? 'text-red-600' : 'text-blue-600'}`}>{detail.stats.isGhostLoad ? 'Yes' : 'No'}</span></div>
               </div>
             </div>
           </ScrollArea>
@@ -488,8 +491,8 @@ function TempGaugeGrid({ rooms }: { rooms: RoomWithBms[] }) {
               Real-time compressor load + temperature from BMS simulator · {rooms.length} rooms monitored
             </CardDescription>
           </div>
-          <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
+          <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse mr-1.5" />
             Live
           </Badge>
         </div>
