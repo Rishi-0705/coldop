@@ -29,6 +29,9 @@ model ColdRoom {
   floorY        Int      // 0..100
   floorW        Int      @default(20)
   floorH        Int      @default(15)
+  recommendedSetpoint Float?   // AI-computed optimal setpoint (null = no recommendation yet)
+  aiReason      String?          // Human-readable explanation of the recommendation
+  lastStockType String?          // Most recent stock_type from WMS upload
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

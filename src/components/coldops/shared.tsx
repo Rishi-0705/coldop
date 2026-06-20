@@ -1,162 +1,103 @@
 'use client'
 
 import {
-  Activity, Camera, Map as MapIcon, ClipboardList, ScrollText, Settings as SettingsIcon,
-  Snowflake, TrendingDown, Server, Radio, RefreshCw, ArrowRight, ThermometerSun,
-  Loader2, Zap, Package, AlertTriangle, Leaf, Target, BadgeHelp
+  Snowflake, TrendingDown, ArrowRight, ThermometerSun,
+  Loader2, Zap, CheckCircle2, Circle, ChevronRight,
+  UploadCloud, ClipboardCheck, BarChart2
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { Savings, Severity, ViewKey, ActiveSetback } from '@/lib/coldops/types'
 import { formatRM, formatKW } from '@/lib/coldops/ui'
 
 export type { ViewKey } from '@/lib/coldops/types'
 
 // ============================================================================
-// SIDEBAR — replaces the old TopBar. Left-side navigation with 5 views + settings.
+// TOP NAV — 3-step stepper navigation
 // ============================================================================
 
-export function Sidebar({
-  view, onView, notifCounts, bmsOnline, realtimeConnected, savings, onRefresh,
+const STEPS: { key: ViewKey; step: number; label: string; description: string; icon: any }[] = [
+  { key: 'ingestion', step: 1, label: 'Configure', description: 'Schedule & WMS upload', icon: UploadCloud },
+  { key: 'workorders', step: 2, label: 'Actions', description: 'Review AI recommendations', icon: ClipboardCheck },
+  { key: 'command', step: 3, label: 'Dashboard', description: 'Savings & overview', icon: BarChart2 },
+]
+
+export function TopNav({
+  view,
+  onView,
+  pendingCount,
+  savings,
 }: {
   view: ViewKey
   onView: (v: ViewKey) => void
-  notifCounts: Record<string, number>
-  bmsOnline: boolean
-  realtimeConnected: boolean
+  pendingCount: number
   savings?: Savings
-  onRefresh: () => void
 }) {
-  const totalOpen = Object.values(notifCounts).reduce((a, b) => a + b, 0)
-
-  const nav: { key: ViewKey; label: string; description: string; icon: any; flagship?: string }[] = [
-    { key: 'command', label: 'Dashboard', description: 'Ghost Load Detection', icon: Activity, flagship: '1. Detect Waste' },
-    { key: 'map', label: 'Cold Room Map', description: 'Utilization Optimizer', icon: MapIcon, flagship: '2. Consolidate Space' },
-    { key: 'workorders', label: 'Action Center', description: 'Work Orders & Approvals', icon: ClipboardList },
-    { key: 'ingestion', label: 'Live Data Ingestion', description: 'Camera & WMS Uploads', icon: Zap },
-  ]
+  const activeStep = STEPS.find(s => s.key === view)?.step ?? 1
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 border-r border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 z-40 flex flex-col">
-      {/* Logo + brand */}
-      <div className="p-4 border-b border-border/60">
-        <div className="flex items-center gap-2.5">
-          <div className="grid place-items-center h-9 w-9 rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Snowflake className="h-5 w-5" />
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between gap-6">
+        {/* Brand */}
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <div className="grid place-items-center h-8 w-8 rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <Snowflake className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-sm font-semibold leading-tight">ColdOps</div>
+            <div className="text-sm font-bold leading-tight">ColdOps</div>
             <div className="text-[10px] text-muted-foreground leading-tight">Marigold PJ Factory</div>
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-2 space-y-1">
-        {nav.map(n => {
-          const Icon = n.icon
-          const active = view === n.key
-          const badge = n.key === 'workorders' && totalOpen > 0 ? totalOpen : null
-          return (
-            <button
-              key={n.key}
-              onClick={() => onView(n.key)}
-              className={`w-full text-left rounded-lg p-2.5 transition-all group ${
-                active ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-muted/60 text-foreground'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Icon className={`h-4 w-4 flex-shrink-0 ${active ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'}`} />
-                <span className="text-sm font-medium flex-1">{n.label}</span>
-                {badge !== null && (
-                  <span className="min-w-[18px] h-[18px] px-1 grid place-items-center text-[10px] font-bold rounded-full bg-red-500 text-white">
-                    {badge}
+        {/* Stepper */}
+        <nav className="flex items-center gap-1">
+          {STEPS.map((s, i) => {
+            const Icon = s.icon
+            const isActive = s.key === view
+            const isDone = s.step < activeStep
+            return (
+              <div key={s.key} className="flex items-center">
+                <button
+                  onClick={() => onView(s.key)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : isDone
+                      ? 'text-foreground hover:bg-muted/60'
+                      : 'text-muted-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  <span className={`flex-shrink-0 h-5 w-5 rounded-full text-[11px] font-bold flex items-center justify-center ${
+                    isActive
+                      ? 'bg-primary-foreground/20 text-primary-foreground'
+                      : isDone
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {isDone ? <CheckCircle2 className="h-3 w-3" /> : s.step}
                   </span>
-                )}
-                {n.flagship && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-primary-foreground/60' : 'bg-blue-500'}`} />
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="text-xs">
-                        <div className="font-semibold">Flagship Feature</div>
-                        <div>{n.flagship}</div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <span className="hidden sm:inline">{s.label}</span>
+                </button>
+                {i < STEPS.length - 1 && (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 mx-1" />
                 )}
               </div>
-              <div className={`text-[10px] mt-0.5 ml-6 ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                {n.description}
-              </div>
-            </button>
-          )
-        })}
-      </nav>
+            )
+          })}
+        </nav>
 
-      {/* 2 Core Solutions highlights */}
-      <div className="p-3 border-t border-border/60 space-y-1.5">
-        <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide px-1">Core Engine Overview</div>
-        <FlagshipBadge icon={Zap} label="1. Ghost Load Engine" description="Cross-references real-time smart meter power draw with live production schedules. If a compressor runs at full power when no production is happening, it alerts the team and triggers an automated Progressive Setback (ramping temp safely) to eliminate waste." />
-        <FlagshipBadge icon={Package} label="2. Utilization Optimizer" description="Scans WMS for underutilized cold rooms (<25% capacity). Generates smart consolidation routes (moving pallets to other rooms) so empty rooms can be shut down entirely, drastically reducing energy consumption." />
-      </div>
-
-      {/* Status indicators */}
-      <div className="p-3 border-t border-border/60 space-y-1.5">
-        <div className="flex items-center justify-between">
-          <StatusPill ok={bmsOnline} label="BMS" />
-          <StatusPill ok={realtimeConnected} label="Live" />
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onRefresh}>
-            <RefreshCw className="h-3 w-3" />
-          </Button>
-        </div>
-        {savings && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-medium">
-            <TrendingDown className="h-3 w-3" />
+        {/* Savings pill */}
+        {savings && savings.tonightRM > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex-shrink-0">
+            <TrendingDown className="h-3.5 w-3.5" />
             {formatRM(savings.tonightRM)} saved tonight
           </div>
         )}
       </div>
-
-      {/* Settings removed to focus on core features */}
-    </aside>
-  )
-}
-
-function FlagshipBadge({ icon: Icon, label, description }: { icon: any; label: string; description: string }) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/40 cursor-help transition-colors">
-            <Icon className="h-3 w-3 text-primary flex-shrink-0" />
-            <span className="text-[10px] font-medium">{label}</span>
-            <BadgeHelp className="h-2.5 w-2.5 text-muted-foreground/50 ml-auto" />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="max-w-[280px] text-xs">
-          <div className="font-semibold mb-1">{label}</div>
-          <div 
-            className="text-[10px] leading-relaxed [&_b]:font-semibold [&_b]:text-foreground"
-            dangerouslySetInnerHTML={{ __html: description }}
-          />
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
-}
-
-function StatusPill({ ok, label }: { ok: boolean; label: string }) {
-  return (
-    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${ok ? 'text-blue-700' : 'text-zinc-500'}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${ok ? 'bg-blue-500 animate-pulse' : 'bg-zinc-400'}`} />
-      {label}
-    </div>
+    </header>
   )
 }
 

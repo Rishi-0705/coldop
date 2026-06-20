@@ -24,19 +24,19 @@ async function main() {
   await db.savingsCounter.upsert({
     where: { id: 1 },
     update: {
-      tonightRM: 47.32,
-      thisWeekRM: 312.18,
-      thisMonthRM: 4821.55,
-      co2Tonnes: 2.34,
-      ghostLoadHours: 38.5,
+      tonightRM: 0,
+      thisWeekRM: 0,
+      thisMonthRM: 0,
+      co2Tonnes: 0,
+      ghostLoadHours: 0,
     },
     create: {
       id: 1,
-      tonightRM: 47.32,
-      thisWeekRM: 312.18,
-      thisMonthRM: 4821.55,
-      co2Tonnes: 2.34,
-      ghostLoadHours: 38.5,
+      tonightRM: 0,
+      thisWeekRM: 0,
+      thisMonthRM: 0,
+      co2Tonnes: 0,
+      ghostLoadHours: 0,
     },
   })
 

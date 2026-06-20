@@ -13,6 +13,9 @@ export async function GET() {
   ])
 
   const rooms = await db.coldRoom.findMany()
+  const openNotifs = await db.notification.findMany({ where: { status: 'OPEN', type: 'TEMP_ADJUSTMENT' } })
+  const openRooms = new Set(openNotifs.map(n => n.roomId))
+
   const enriched = utils.map(u => {
     const room = rooms.find(r => r.id === u.roomId)
     const bms = bmsRooms.find((b: any) => b.roomId === u.roomCode)
@@ -29,6 +32,9 @@ export async function GET() {
       minSafeTemp: room?.minSafeTemp ?? 0,
       maxSafeTemp: room?.maxSafeTemp ?? 10,
       maxPowerKW: room?.maxPowerKW ?? 30,
+      recommendedSetpoint: openRooms.has(u.roomId) ? (room?.recommendedSetpoint ?? null) : null,
+      aiReason: openRooms.has(u.roomId) ? (room?.aiReason ?? null) : null,
+      lastStockType: room?.lastStockType ?? null,
       bms: bms ? {
         currentTemp: bms.currentTemp,
         setpoint: bms.setpoint,

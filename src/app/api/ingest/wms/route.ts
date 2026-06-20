@@ -1,107 +1,176 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { runSmartEngine, STOCK_TEMP_MAP, ScheduleConfig } from '@/lib/coldops/smart-engine'
 import { planConsolidation } from '@/lib/coldops/detection'
+
+export const dynamic = 'force-dynamic'
+
+// Map old Zone_Type values to the new stock_type keys
+const ZONE_TO_STOCK_TYPE: Record<string, string> = {
+  CHILLED_STORAGE:  'CHILLED_STORAGE',
+  BLAST_FREEZER:    'BLAST_FREEZER',
+  DAIRY_WIP:        'DAIRY_WIP',
+  FINISHED_GOODS:   'FINISHED_GOODS',
+  RAW_MILK:         'RAW_MILK',
+  JUICE_STORAGE:    'JUICE_STORAGE',
+  DRY:              'DRY_GOODS',
+}
+
+const DEFAULT_SCHEDULE: ScheduleConfig = {
+  peakStart: '08:00',
+  peakEnd: '18:00',
+  workStart: '07:00',
+  workEnd: '22:00',
+  shutdownTime: '23:00',
+}
+
+/**
+ * Detect which CSV format this file is.
+ * New: cooler_id, stock_type, stock_count, max_capacity (4 cols)
+ * Old: Bin_Location_ID, Zone_Type, Target_Temp_Setpoint, Max_Pallet_Capacity, Current_Pallet_Count, ... (7 cols)
+ */
+function detectFormat(header: string): 'new' | 'old' {
+  const lower = header.toLowerCase()
+  if (lower.includes('stock_type') || lower.includes('cooler_id')) return 'new'
+  return 'old'
+}
 
 export async function POST(req: Request) {
   try {
     const data = await req.formData()
     const file = data.get('file') as File
+    const scheduleRaw = data.get('schedule') as string | null
+    const schedule: ScheduleConfig = scheduleRaw
+      ? { ...DEFAULT_SCHEDULE, ...JSON.parse(scheduleRaw) }
+      : DEFAULT_SCHEDULE
+
     if (!file) return NextResponse.json({ ok: false, error: 'No file provided' }, { status: 400 })
 
     const text = await file.text()
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-    
-    // Schema: Bin_Location_ID, Zone_Type, Target_Temp_Setpoint, Max_Pallet_Capacity, Current_Pallet_Count, Aisle_X_Coord, Putaway_Block_Status
-    let startIndex = 0
-    if (lines[0].toLowerCase().includes('bin_location')) startIndex = 1
+    if (lines.length < 2) return NextResponse.json({ ok: false, error: 'File is empty or has no data rows' }, { status: 400 })
 
-    // Aggregate by room code
-    const roomAggregates: Record<string, { current: number; max: number }> = {}
+    const format = detectFormat(lines[0])
+    let startIndex = 1
 
-    for (let i = startIndex; i < lines.length; i++) {
-      const parts = lines[i].split(',').map(p => p.trim())
-      if (parts.length >= 5) {
+    // { coolerCode → { stockType, stockCount, maxCapacity } }
+    const roomData: Record<string, { stockType: string; stockCount: number; maxCapacity: number }> = {}
+
+    if (format === 'new') {
+      // NEW FORMAT: cooler_id, stock_type, stock_count, max_capacity
+      for (let i = startIndex; i < lines.length; i++) {
+        const parts = lines[i].split(',').map(p => p.trim())
+        if (parts.length < 4) continue
+        const [coolerId, stockType, stockCountStr, maxCapacityStr] = parts
+        const code = coolerId.toUpperCase()
+        if (!roomData[code]) roomData[code] = { stockType: stockType.toUpperCase(), stockCount: 0, maxCapacity: 0 }
+        roomData[code].stockCount += parseInt(stockCountStr, 10) || 0
+        roomData[code].maxCapacity = Math.max(roomData[code].maxCapacity, parseInt(maxCapacityStr, 10) || 0)
+        roomData[code].stockType = stockType.toUpperCase() // last row wins for type
+      }
+    } else {
+      // OLD FORMAT: Bin_Location_ID, Zone_Type, Target_Temp_Setpoint, Max_Pallet_Capacity, Current_Pallet_Count, ...
+      for (let i = startIndex; i < lines.length; i++) {
+        const parts = lines[i].split(',').map(p => p.trim())
+        if (parts.length < 5) continue
         const binLocation = parts[0]
+        const zoneType = parts[1]
         const maxCapacity = parseInt(parts[3], 10) || 0
         const currentCount = parseInt(parts[4], 10) || 0
-        
-        // Extract room code like CR-01 or RM-A from CR-01-Aisle04
+
         const match = binLocation.match(/^(CR-[0-9]+|RM-[A-Z]|WH[0-9]+)/i)
-        if (match) {
-          const code = match[0].toUpperCase()
-          if (!roomAggregates[code]) {
-            roomAggregates[code] = { current: 0, max: 0 }
-          }
-          roomAggregates[code].current += currentCount
-          roomAggregates[code].max += maxCapacity
-        }
+        if (!match) continue
+
+        const code = match[0].toUpperCase()
+        const stockType = ZONE_TO_STOCK_TYPE[zoneType] ?? 'CHILLED_STORAGE'
+
+        if (!roomData[code]) roomData[code] = { stockType, stockCount: 0, maxCapacity: 0 }
+        roomData[code].stockCount += currentCount
+        roomData[code].maxCapacity += maxCapacity
+        roomData[code].stockType = stockType
       }
     }
 
     let updatedRooms = 0
 
-    // Update DB
-    for (const [code, counts] of Object.entries(roomAggregates)) {
+    // Update DB pallet counts per room
+    for (const [code, entry] of Object.entries(roomData)) {
       const room = await db.coldRoom.findFirst({ where: { code } })
-      if (room) {
-        // Optional: Update room capacity if needed
-        // await db.coldRoom.update({ where: { id: room.id }, data: { capacityPallets: counts.max } })
+      if (!room) continue
 
-        const existingPallets = await db.pallet.findMany({ where: { roomId: room.id } })
-        const palletCount = counts.current
-        
-        if (palletCount < existingPallets.length) {
-          const toRemove = existingPallets.length - palletCount
-          const idsToRemove = existingPallets.slice(0, toRemove).map(p => p.id)
-          await db.pallet.deleteMany({ where: { id: { in: idsToRemove } } })
-        } else if (palletCount > existingPallets.length) {
-          const toAdd = palletCount - existingPallets.length
-          const newPallets = Array.from({ length: toAdd }).map((_, idx) => ({
-            roomId: room.id,
-            bayCode: `BIN-${Date.now()}-${idx}`,
-            productCode: 'MARIGOLD-FM-1L',
-            productName: 'Ingested Stock',
-            lotNo: `INGEST-LOT-${Date.now()}-${idx}`,
-            expiryDate: new Date(Date.now() + 30 * 86400000), // 30 days
-            allergenTags: '',
-          }))
-          await db.pallet.createMany({ data: newPallets })
-        }
-        updatedRooms++
+      const existingPallets = await db.pallet.findMany({ where: { roomId: room.id } })
+      const palletCount = entry.stockCount
+
+      if (entry.maxCapacity > 0 && entry.maxCapacity !== room.capacityPallets) {
+        await db.coldRoom.update({
+          where: { id: room.id },
+          data: { capacityPallets: entry.maxCapacity }
+        })
       }
+
+      if (palletCount < existingPallets.length) {
+        const idsToRemove = existingPallets.slice(0, existingPallets.length - palletCount).map(p => p.id)
+        await db.workOrderMove.deleteMany({ where: { palletId: { in: idsToRemove } } })
+        await db.pallet.deleteMany({ where: { id: { in: idsToRemove } } })
+      } else if (palletCount > existingPallets.length) {
+        const toAdd = palletCount - existingPallets.length
+        const now = Date.now()
+        await db.pallet.createMany({
+          data: Array.from({ length: toAdd }, (_, idx) => ({
+            roomId: room.id,
+            bayCode: `BIN-${now}-${idx}`,
+            productCode: 'MARIGOLD-FM-1L',
+            productName: entry.stockType.replace(/_/g, ' '),
+            lotNo: `WMS-${now}-${idx}`,
+            expiryDate: new Date(now + 30 * 86400000),
+            allergenTags: '',
+          })),
+        })
+      }
+      updatedRooms++
     }
 
-    // After updating, run consolidation to check if we need to create a notification
-    let plan = await planConsolidation()
-    
-    // DEMO GUARANTEE: If the rules engine didn't find a perfect consolidation, we force one for the presentation
-    if (!plan || plan.netBenefitRM <= 0) {
-      plan = {
-        sourceRoomCodes: ['CR-02'],
-        destRoomCode: 'CR-01',
-        palletCount: 15,
-        energySavingRM: 120.50,
-        netBenefitRM: 95.00,
-        sourceRoomIds: []
-      } as any
-    }
+    // Run the smart engine
+    const wmsData = Object.entries(roomData).map(([coolerCode, entry]) => ({
+      coolerCode,
+      stockType: entry.stockType,
+      stockCount: entry.stockCount,
+      maxCapacity: entry.maxCapacity,
+    }))
 
+    const engineResult = await runSmartEngine(wmsData, schedule)
+
+    // Also dismiss stale CONSOLIDATION_SUGGESTED notifications and re-run consolidation planner
+    await db.notification.updateMany({
+      where: { type: 'CONSOLIDATION_SUGGESTED', status: 'OPEN' },
+      data: { status: 'DISMISSED', resolvedAt: new Date() },
+    })
+
+    const plan = await planConsolidation()
     if (plan && plan.netBenefitRM > 0) {
-      // Create a new notification for consolidation
+      const sourceList = plan.sourceRoomCodes.join(', ')
       await db.notification.create({
         data: {
           type: 'CONSOLIDATION_SUGGESTED',
-          severity: 'MEDIUM',
-          title: 'Scattered Stock Detected',
-          message: `Live WMS update detected underutilized rooms. Merge ${plan.palletCount} pallets to ${plan.destRoomCode} to save RM ${plan.energySavingRM.toFixed(2)}.`,
-          roomId: plan.sourceRoomCodes.length > 0 ? (await db.coldRoom.findFirst({ where: { code: plan.sourceRoomCodes[0] } }))?.id : null,
+          severity: plan.netBenefitRM >= 100 ? 'HIGH' : 'MEDIUM',
+          severityScore: Math.min(99, Math.round(plan.netBenefitRM)),
+          title: 'Stock Consolidation Opportunity',
+          message: `Move ${plan.palletCount} pallets from ${sourceList} → ${plan.destRoomCode}. Saves RM ${plan.energySavingRM.toFixed(2)} in energy (net RM ${plan.netBenefitRM.toFixed(2)} after RM ${plan.laborCostRM.toFixed(2)} labour).`,
+          roomId: plan.sourceRoomIds[0] ?? null,
           rmImpact: plan.netBenefitRM,
+          rmPerHour: plan.energySavingRM / (plan.idleWindowHours || 8),
+          durationHours: plan.idleWindowHours,
           actionType: 'GENERATE_WORK_ORDER',
-        }
+        },
       })
     }
 
-    return NextResponse.json({ ok: true, message: `Processed advanced WMS data. Updated ${updatedRooms} rooms.` })
+    return NextResponse.json({
+      ok: true,
+      format,
+      message: `Processed ${format === 'new' ? 'new' : 'legacy'} WMS format. Updated ${updatedRooms} rooms. ${engineResult.actionableCount} temperature actions generated.`,
+      engineResult,
+    })
   } catch (error: any) {
     console.error('WMS Ingest error:', error)
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 })

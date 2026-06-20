@@ -4,85 +4,39 @@ import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useRealtimeEvent, useRealtimeConnection } from '@/hooks/use-realtime'
 import type {
-  DashboardData, RoomWithBms, Notification, WorkOrder, ConsolidationPlan,
-  ActiveSetback, Savings, AnalyticsData, MeterData,
-  SetbackHistoryItem, ProductionScheduleData, ViewKey
+  DashboardData, RoomWithBms, Notification, Savings, MeterData, ViewKey
 } from '@/lib/coldops/types'
-import { Sidebar, Footer, LoadingState } from '@/components/coldops/shared'
-import { CommandCenter } from '@/components/coldops/command-center'
-import { CameraScan } from '@/components/coldops/camera-scan'
-import { ColdRoomMap } from '@/components/coldops/cold-room-map'
-import { WorkOrdersView } from '@/components/coldops/work-orders'
-import { NotificationsView } from '@/components/coldops/notifications'
-import { AnalyticsView } from '@/components/coldops/analytics'
-import { ScheduleView } from '@/components/coldops/schedule'
-import { WmsView } from '@/components/coldops/wms'
-import { LogsView } from '@/components/coldops/logs'
-import { SettingsView } from '@/components/coldops/settings'
-import { ViewTransition } from '@/components/coldops/motion'
-import { QuickActions } from '@/components/coldops/quick-actions'
-import { DemoTour } from '@/components/coldops/demo-tour'
+import { TopNav, Footer, LoadingState } from '@/components/coldops/shared'
 import { DataIngestionView } from '@/components/coldops/data-ingestion'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { BarChart3, Calendar, Package, Bell, ScrollText, Zap } from 'lucide-react'
+import { ActionMenuView } from '@/components/coldops/action-menu'
+import { ResultsDashboard } from '@/components/coldops/results-dashboard'
+import { ViewTransition } from '@/components/coldops/motion'
 
 export default function ColdOpsPage() {
-  const [view, setView] = useState<ViewKey>('command')
+  const [view, setView] = useState<ViewKey>('ingestion')
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [rooms, setRooms] = useState<RoomWithBms[]>([])
   const [notifs, setNotifs] = useState<Notification[]>([])
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
-  const [plan, setPlan] = useState<ConsolidationPlan | null>(null)
-  const [activeSetbacks, setActiveSetbacks] = useState<ActiveSetback[]>([])
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
-  const [meterData, setMeterData] = useState<MeterData | null>(null)
-  const [setbackHistory, setSetbackHistory] = useState<SetbackHistoryItem[]>([])
-  const [schedule, setSchedule] = useState<ProductionScheduleData | null>(null)
-  const [loading, setLoading] = useState(true)
   const [notifCounts, setNotifCounts] = useState<Record<string, number>>({ CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 })
-  const [bmsOnline, setBmsOnline] = useState(true)
+  const [meterData, setMeterData] = useState<MeterData | null>(null)
+  const [loading, setLoading] = useState(true)
   const [realtimeConnected, setRealtimeConnected] = useState(false)
-  const [tick, setTick] = useState(0)
 
   const fetchAll = useCallback(async () => {
     try {
-      const [d, r, n, w, c, s, bh] = await Promise.all([
+      const [d, r, n] = await Promise.all([
         fetch('/api/dashboard').then(r => r.json()),
         fetch('/api/rooms').then(r => r.json()),
         fetch('/api/notifications').then(r => r.json()),
-        fetch('/api/work-orders').then(r => r.json()),
-        fetch('/api/consolidation').then(r => r.json()),
-        fetch('/api/setback/active').then(r => r.json()),
-        fetch('/api/bms-health').then(r => r.json()),
       ])
       setDashboard(d)
       setRooms(r.rooms || [])
       setNotifs(n.notifications || [])
       setNotifCounts(n.counts || {})
-      setWorkOrders(w.workOrders || [])
-      setPlan(c.plan)
-      setActiveSetbacks(s.active || [])
-      setBmsOnline(bh.online)
     } catch (e) {
       console.error('fetch failed', e)
     } finally {
       setLoading(false)
-    }
-  }, [])
-
-  const fetchAnalytics = useCallback(async () => {
-    try {
-      const [a, m, sh] = await Promise.all([
-        fetch('/api/analytics').then(r => r.json()),
-        fetch('/api/meter-readings?hours=6').then(r => r.json()),
-        fetch('/api/setbacks').then(r => r.json()),
-      ])
-      setAnalytics(a)
-      setMeterData(m)
-      setSetbackHistory(sh.setbacks || [])
-    } catch (e) {
-      console.error('analytics fetch failed', e)
     }
   }, [])
 
@@ -95,30 +49,12 @@ export default function ColdOpsPage() {
     }
   }, [])
 
-  const fetchSchedule = useCallback(async () => {
-    try {
-      const s = await fetch('/api/production-schedule').then(r => r.json())
-      setSchedule(s)
-    } catch (e) {
-      console.error('schedule fetch failed', e)
-    }
-  }, [])
-
   useEffect(() => {
     fetchAll()
     fetchMeter()
-    const interval = setInterval(() => setTick(t => t + 1), 8000)
+    const interval = setInterval(() => { fetchAll(); fetchMeter() }, 30000)
     return () => clearInterval(interval)
   }, [fetchAll, fetchMeter])
-
-  useEffect(() => {
-    if (tick > 0) fetchAll()
-  }, [tick, fetchAll])
-
-  useEffect(() => {
-    if (view === 'command' && !analytics) fetchAnalytics()
-    if (view === 'command' && !schedule) fetchSchedule()
-  }, [view, analytics, schedule, fetchAnalytics, fetchSchedule])
 
   const conn = useRealtimeConnection()
   useEffect(() => setRealtimeConnected(conn), [conn])
@@ -131,20 +67,12 @@ export default function ColdOpsPage() {
     setNotifCounts(prev => ({ ...prev, [n.severity]: (prev[n.severity] || 0) + 1 }))
     toast.info(`New ${n.severity.toLowerCase()} alert: ${n.title}`)
   })
-  useRealtimeEvent('notification-updated', (p: { id: string; status: string }) => {
-    setNotifs(prev => prev.map(n => n.id === p.id ? { ...n, status: p.status as Notification['status'] } : n))
+  useRealtimeEvent('notification-updated', () => fetchAll())
+  useRealtimeEvent('setback-completed', () => {
+    toast.success('Setback completed — savings accumulating')
     fetchAll()
   })
-  useRealtimeEvent('setback-progress', () => {
-    fetch('/api/setback/active').then(r => r.json()).then(s => setActiveSetbacks(s.active || []))
-  })
-  useRealtimeEvent('setback-completed', (p: { setbackId: string }) => {
-    setActiveSetbacks(prev => prev.filter(s => s.setbackId !== p.setbackId))
-    toast.success(`Setback completed — savings accumulating`)
-    fetchAll()
-  })
-  useRealtimeEvent('setback-aborted', (p: { setbackId: string; reason: string }) => {
-    setActiveSetbacks(prev => prev.filter(s => s.setbackId !== p.setbackId))
+  useRealtimeEvent('setback-aborted', (p: { reason: string }) => {
     toast.error(`Setback aborted: ${p.reason}`)
     fetchAll()
   })
@@ -152,70 +80,50 @@ export default function ColdOpsPage() {
     fetchAll()
     toast.success('Work order completed')
   })
-  useRealtimeEvent('work-order-updated', () => fetchAll())
-  useRealtimeEvent('ghost-load-detected', () => fetchAll())
   useRealtimeEvent('room-status-changed', () => fetchAll())
 
-  // Keyboard shortcuts: 1-5 for views, 6 for settings
+  // Keyboard: → = Actions, ← = Configure, ↑ = Dashboard
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      const views: ViewKey[] = ['command', 'map', 'workorders']
-      const num = parseInt(e.key)
-      if (num >= 1 && num <= 3) {
-        setView(views[num - 1])
-      }
+      if (e.key === 'ArrowRight') setView('workorders')
+      if (e.key === 'ArrowLeft') setView('ingestion')
+      if (e.key === 'ArrowUp') setView('command')
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  const pendingCount = Object.values(notifCounts).reduce((a, b) => a + b, 0)
+
+  const goToActions = () => setView('workorders')
+
   return (
-    <div className="min-h-screen flex bg-background">
-      <Sidebar
+    <div className="min-h-screen flex flex-col bg-background">
+      <TopNav
         view={view}
         onView={setView}
-        notifCounts={notifCounts}
-        bmsOnline={bmsOnline}
-        realtimeConnected={realtimeConnected}
+        pendingCount={pendingCount}
         savings={dashboard?.savings}
-        onRefresh={() => { setLoading(true); fetchAll() }}
       />
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
-        <main className="flex-1 container mx-auto px-6 py-6 max-w-[1400px]">
-          {loading && !dashboard ? (
-            <LoadingState />
-          ) : (
-            <ViewTransition viewKey={view}>
-              {view === 'command' ? (
-                <div className="space-y-6">
-                  <CommandCenter dashboard={dashboard} rooms={rooms} activeSetbacks={activeSetbacks} meterData={meterData} onNeedMeter={fetchMeter} />
-                </div>
-              ) : view === 'map' ? (
-                <div className="space-y-6">
-                  <ColdRoomMap rooms={rooms} plan={plan} onExecutePlan={fetchAll} />
-                </div>
-              ) : view === 'workorders' ? (
-                <div className="space-y-6">
-                  <WorkOrdersView workOrders={workOrders} activeSetbacks={activeSetbacks} onComplete={fetchAll} />
-                  <div className="flex items-center gap-2 mb-2">
-                    <Bell className="h-4 w-4 text-primary" />
-                    <h3 className="text-base font-semibold">Notifications</h3>
-                    <span className="text-xs text-muted-foreground">— severity-sorted alerts, approve to trigger automated response</span>
-                  </div>
-                  <NotificationsView notifs={notifs} counts={notifCounts} onAction={fetchAll} />
-                </div>
-              ) : view === 'ingestion' ? (
-                <div className="space-y-6 max-w-4xl mx-auto">
-                  <DataIngestionView rooms={rooms} onAction={fetchAll} />
-                </div>
-              ) : null}
-            </ViewTransition>
-          )}
-        </main>
 
-        <Footer />
-      </div>
+      <main className="flex-1 container mx-auto px-6 py-8 max-w-[1400px]">
+        {loading && !dashboard ? (
+          <LoadingState />
+        ) : (
+          <ViewTransition viewKey={view}>
+            {view === 'ingestion' ? (
+              <DataIngestionView rooms={rooms} onAction={goToActions} />
+            ) : view === 'workorders' ? (
+              <ActionMenuView notifs={notifs} onAction={fetchAll} onViewDashboard={() => setView('command')} />
+            ) : view === 'command' ? (
+              <ResultsDashboard dashboard={dashboard} rooms={rooms} meterData={meterData} />
+            ) : null}
+          </ViewTransition>
+        )}
+      </main>
+
+      <Footer />
     </div>
   )
 }
