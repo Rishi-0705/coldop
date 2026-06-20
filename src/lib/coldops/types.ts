@@ -4,7 +4,7 @@
 
 export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 export type RoomStatus = 'GHOST_LOAD' | 'CONSOLIDATION' | 'OPTIMIZED' | 'ACTIVE' | 'IDLE'
-export type ViewKey = 'command' | 'map' | 'workorders' | 'notifications' | 'analytics' | 'schedule' | 'wms' | 'settings'
+export type ViewKey = 'command' | 'camera' | 'map' | 'workorders' | 'logs' | 'settings'
 
 export interface Savings {
   tonightRM: number

@@ -538,3 +538,86 @@ Stage Summary:
 ## Unresolved Issues / Next Steps
 - No known bugs — platform is stable and feature-rich
 - Potential next features: PDF report generation, multi-factory dashboard, savings milestone celebrations, mobile companion app
+
+---
+Task ID: 13 (Sidebar + Camera Scan + Logs + View Consolidation + VLM)
+Agent: orchestrator (main)
+Task: Major rebuild — sidebar layout, 5 consolidated views, real camera+VLM page, enhanced logs with ML technique descriptions, Top 10 Critical panel.
+
+Work Log:
+- Replaced TopBar with Sidebar layout (fixed left, w-64). Sidebar contains:
+  • ColdOps logo + factory name
+  • 5 view buttons with icons + names + descriptions
+  • 3 Flagship Feature badges with hover tooltips (Main Detection, Fill the Gap, Progressive Setback) — each with full description of what it does
+  • System status indicators (BMS online, Live, savings tonight)
+  • Settings gear at bottom
+- Consolidated 8 views → 5 + settings:
+  • Command Center: existing dashboard + Top 10 Critical panel + Analytics tabs + Schedule tabs
+  • Camera Scan: NEW — real webcam + VLM AI product detection
+  • Cold Room Map: existing floor plan + WMS Stock browser section
+  • Work Orders: existing work orders + Notifications section
+  • Detection Logs: NEW — enhanced activity feed with ML technique descriptions
+  • Settings: via gear icon
+- Added /api/vlm-scan API route:
+  • Accepts base64 image from camera
+  • Sends to z-ai-web-dev-sdk VLM (createVision) with structured prompt
+  • VLM identifies: product name, estimated count, category, visible text, temperature reading, confidence
+  • Fuzzy-matches against 15-product Marigold catalog (exact → partial → word match)
+  • Analyzes: temperature compliance vs product spec, amount for consolidation, expiry from visible text, unknown product flag
+  • Generates severity-scored recommendation (CRITICAL/HIGH/MEDIUM/LOW)
+  • Creates notification + broadcasts via Socket.io
+- Created CameraScan component (camera-scan.tsx):
+  • Real webcam via getUserMedia API (live video feed)
+  • Capture frame to canvas → base64 → POST to /api/vlm-scan
+  • Batch mode (scan multiple, build list, sort by severity) + Single mode (immediate recommendation)
+  • Manual temperature entry field (honest, reliable input)
+  • Image upload fallback (for testing without webcam)
+  • VLM detection display: product name, count, category, confidence, visible text
+  • Matched product spec: safe temp range, shelf life, allergens
+  • Issues detected: temperature too high/low, low stock, near expiry, unknown product
+  • Primary recommendation with Approve & Execute button
+  • Batch results sorted by severity score (rank 1 = most critical)
+- Created LogsView component (logs.tsx):
+  • Enhanced activity feed with ML technique descriptions for each event
+  • Each entry shows: timestamp, category, severity, title, description, TECHNIQUE USED (with full explanation), action taken, RM impact
+  • Technique descriptions explain: Deterministic Rule Engine, Progressive Setback Engine, Greedy Consolidation Planner, Safety Guardrail System, Human-in-the-Loop Approval, WMS Integration + Auto-Setback
+  • Filter by category (Ghost Load, Setback, Work Orders, Alerts)
+  • Auto-refresh every 10 seconds
+- Created TopCriticalPanel component (top-critical.tsx):
+  • Top 10 most critical items across ALL categories (ghost loads, consolidation, notifications, active setbacks)
+  • Cross-category severity ranking
+  • Each item: rank number, category icon, title, description, severity badge, RM impact, action type
+  • Stats bar: critical count, high count, medium count, total RM impact
+- Added /api/top-critical API route: aggregates all critical items, sorts by severity score, returns top 10
+- Added SectionHeader component to shared.tsx: every section now has an icon + title + "What this does" description + optional flagship badge
+- Updated ViewKey type: 'command' | 'camera' | 'map' | 'workorders' | 'logs' | 'settings'
+- Updated keyboard shortcuts: 1-6 for the 6 views
+- Updated main page layout: `ml-64` to account for sidebar width
+- Browser verification: all 6 views render without errors, sidebar navigation works, camera page loads, logs show technique descriptions, Top 10 panel shows on Command Center
+
+Stage Summary:
+- ✅ Sidebar layout with 5 views + settings + 3 flagship descriptions
+- ✅ Real camera scan page with VLM AI (getUserMedia + z-ai-web-dev-sdk)
+- ✅ Enhanced logs page with ML technique descriptions
+- ✅ Top 10 Critical panel (cross-category severity ranking)
+- ✅ View consolidation 8 → 5 (reorganized, not deleted)
+- ✅ Section descriptions on every section
+- ✅ 3 flagships clearly highlighted with hover tooltips
+- ✅ Lint clean, no console errors
+
+## Current Project Status
+- 5 main views + settings: Command Center, Camera Scan, Cold Room Map, Work Orders, Detection Logs
+- 3 mini-services: Next.js (:3000), BMS simulator (:3004), Realtime hub (:3003)
+- 24 API routes (including new /api/vlm-scan + /api/top-critical)
+- 18 component files in src/components/coldops/
+- Real webcam + VLM AI for product detection (production-ready input)
+- Every section has a "What this does" description
+- 3 flagship features clearly described in sidebar
+- Keyboard shortcuts (1-6 for views)
+- Real-time Socket.io updates, framer-motion transitions
+
+## Unresolved Issues / Next Steps
+- VLM requires actual webcam or image upload to test (can't be tested headless)
+- WMS simulator mini-service + CSV upload not yet built (next priority)
+- Demo tour steps need updating to reference new 5-view structure
+- Savings milestone celebrations not yet implemented

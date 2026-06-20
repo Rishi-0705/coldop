@@ -23,6 +23,7 @@ import {
 import { KpiCard, ActiveSetbackCard } from './shared'
 import { EsgDashboard } from './esg'
 import { ActivityFeed } from './activity-feed'
+import { TopCriticalPanel } from './top-critical'
 
 // ============================================================================
 // VIEW: COMMAND CENTER
@@ -65,6 +66,9 @@ export function CommandCenter({ dashboard, rooms, activeSetbacks, meterData, onN
           tone="ghost"
         />
       </div>
+
+      {/* Top 10 Critical Items */}
+      <TopCriticalPanel />
 
       {/* Main grid */}
       <div className="grid gap-4 lg:grid-cols-3">

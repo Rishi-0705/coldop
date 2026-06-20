@@ -1,9 +1,9 @@
 'use client'
 
 import {
-  Activity, Map as MapIcon, ClipboardList, Bell, Snowflake, TrendingDown,
-  Server, Radio, RefreshCw, ArrowRight, ThermometerSun, Loader2,
-  Smartphone, Mail, MessageSquare, BarChart3, Calendar, Package, Settings
+  Activity, Camera, Map as MapIcon, ClipboardList, ScrollText, Settings as SettingsIcon,
+  Snowflake, TrendingDown, Server, Radio, RefreshCw, ArrowRight, ThermometerSun,
+  Loader2, Zap, Package, AlertTriangle, Leaf, Target, BadgeHelp
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,10 +17,10 @@ import { formatRM, formatKW } from '@/lib/coldops/ui'
 export type { ViewKey } from '@/lib/coldops/types'
 
 // ============================================================================
-// TOP BAR
+// SIDEBAR — replaces the old TopBar. Left-side navigation with 5 views + settings.
 // ============================================================================
 
-export function TopBar({
+export function Sidebar({
   view, onView, notifCounts, bmsOnline, realtimeConnected, savings, onRefresh,
 }: {
   view: ViewKey
@@ -32,124 +32,156 @@ export function TopBar({
   onRefresh: () => void
 }) {
   const totalOpen = Object.values(notifCounts).reduce((a, b) => a + b, 0)
-  const nav: { key: ViewKey; label: string; icon: any }[] = [
-    { key: 'command', label: 'Command Center', icon: Activity },
-    { key: 'map', label: 'Cold Room Map', icon: MapIcon },
-    { key: 'workorders', label: 'Work Orders', icon: ClipboardList },
-    { key: 'notifications', label: 'Notifications', icon: Bell },
-    { key: 'wms', label: 'WMS Stock', icon: Package },
-    { key: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { key: 'schedule', label: 'Schedule', icon: Calendar },
-    { key: 'settings', label: 'Settings', icon: Settings },
+
+  const nav: { key: ViewKey; label: string; description: string; icon: any; flagship?: string }[] = [
+    { key: 'command', label: 'Command Center', description: 'Ghost load detection & live KPIs', icon: Activity, flagship: 'Main Detection' },
+    { key: 'camera', label: 'Camera Scan', description: 'Real webcam + AI product detection', icon: Camera },
+    { key: 'map', label: 'Cold Room Map', description: 'Consolidation & floor plan', icon: MapIcon, flagship: 'Fill the Gap' },
+    { key: 'workorders', label: 'Work Orders', description: 'Execution & approvals', icon: ClipboardList },
+    { key: 'logs', label: 'Detection Logs', description: 'Audit trail & scenario results', icon: ScrollText },
   ]
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-      <div className="container mx-auto px-4 max-w-[1600px]">
-        <div className="flex h-16 items-center gap-4">
-          {/* Logo + brand */}
-          <div className="flex items-center gap-3">
-            <div className="grid place-items-center h-9 w-9 rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <Snowflake className="h-5 w-5" />
-            </div>
-            <div className="hidden sm:block">
-              <div className="text-base font-semibold leading-tight">ColdOps</div>
-              <div className="text-[11px] text-muted-foreground leading-tight">Marigold PJ Factory · Live</div>
-            </div>
+    <aside className="fixed left-0 top-0 bottom-0 w-64 border-r border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 z-40 flex flex-col">
+      {/* Logo + brand */}
+      <div className="p-4 border-b border-border/60">
+        <div className="flex items-center gap-2.5">
+          <div className="grid place-items-center h-9 w-9 rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <Snowflake className="h-5 w-5" />
           </div>
-
-          {/* Nav */}
-          <nav className="flex items-center gap-1 mx-auto">
-            {nav.map(n => {
-              const Icon = n.icon
-              const active = view === n.key
-              const badge = n.key === 'notifications' && totalOpen > 0 ? totalOpen : null
-              return (
-                <Button
-                  key={n.key}
-                  variant={active ? 'default' : 'ghost'}
-                  size="sm"
-                  className={`relative h-9 gap-2 ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                  onClick={() => onView(n.key)}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden md:inline">{n.label}</span>
-                  {badge !== null && (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 grid place-items-center text-[10px] font-bold rounded-full bg-red-500 text-white ring-2 ring-card">
-                      {badge}
-                    </span>
-                  )}
-                </Button>
-              )
-            })}
-          </nav>
-
-          {/* Status pills */}
-          <div className="flex items-center gap-2">
-            {savings && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
-                      <TrendingDown className="h-3.5 w-3.5" />
-                      {formatRM(savings.tonightRM)}
-                      <span className="text-emerald-500/70 font-normal">tonight</span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <div className="text-xs space-y-0.5">
-                      <div>Tonight: <b>{formatRM(savings.tonightRM)}</b></div>
-                      <div>This week: <b>{formatRM(savings.thisWeekRM)}</b></div>
-                      <div>This month: <b>{formatRM(savings.thisMonthRM)}</b></div>
-                      <div>CO₂ avoided: <b>{savings.co2Tonnes.toFixed(2)} t</b></div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-
-            <StatusPill
-              ok={bmsOnline}
-              okLabel="BMS"
-              okIcon={Server}
-              badLabel="BMS off"
-              badIcon={Server}
-            />
-            <StatusPill
-              ok={realtimeConnected}
-              okLabel="Live"
-              okIcon={Radio}
-              badLabel="Offline"
-              badIcon={Radio}
-            />
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRefresh}>
-              <RefreshCw className="h-3.5 w-3.5" />
-            </Button>
+          <div>
+            <div className="text-sm font-semibold leading-tight">ColdOps</div>
+            <div className="text-[10px] text-muted-foreground leading-tight">Marigold PJ Factory</div>
           </div>
         </div>
       </div>
-    </header>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+        {nav.map(n => {
+          const Icon = n.icon
+          const active = view === n.key
+          const badge = n.key === 'workorders' && totalOpen > 0 ? totalOpen : null
+          return (
+            <button
+              key={n.key}
+              onClick={() => onView(n.key)}
+              className={`w-full text-left rounded-lg p-2.5 transition-all group ${
+                active ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-muted/60 text-foreground'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Icon className={`h-4 w-4 flex-shrink-0 ${active ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                <span className="text-sm font-medium flex-1">{n.label}</span>
+                {badge !== null && (
+                  <span className="min-w-[18px] h-[18px] px-1 grid place-items-center text-[10px] font-bold rounded-full bg-red-500 text-white">
+                    {badge}
+                  </span>
+                )}
+                {n.flagship && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-primary-foreground/60' : 'bg-emerald-500'}`} />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs">
+                        <div className="font-semibold">Flagship Feature</div>
+                        <div>{n.flagship}</div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
+              <div className={`text-[10px] mt-0.5 ml-6 ${active ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                {n.description}
+              </div>
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* 3 Flagship highlights */}
+      <div className="p-3 border-t border-border/60 space-y-1.5">
+        <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide px-1">3 Flagship Features</div>
+        <FlagshipBadge icon={Zap} label="Main Detection" description="Cross-references smart meter data with production schedules to detect compressors running at full power during non-production hours. Deterministic rules for explainability." />
+        <FlagshipBadge icon={Package} label="Fill the Gap" description="Identifies underutilized cold rooms (<25%) and generates FEFO-sequenced consolidation plans with allergen checks + net benefit calculation." />
+        <FlagshipBadge icon={ThermometerSun} label="Progressive Setback" description="Ramps temperature gradually (4°C→8°C) via real BMS API commands with readback confirmations + safety auto-abort." />
+      </div>
+
+      {/* Status indicators */}
+      <div className="p-3 border-t border-border/60 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <StatusPill ok={bmsOnline} label="BMS" />
+          <StatusPill ok={realtimeConnected} label="Live" />
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onRefresh}>
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
+        {savings && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-medium">
+            <TrendingDown className="h-3 w-3" />
+            {formatRM(savings.tonightRM)} saved tonight
+          </div>
+        )}
+      </div>
+
+      {/* Settings gear */}
+      <div className="p-2 border-t border-border/60">
+        <Button
+          variant={view === 'settings' ? 'default' : 'ghost'}
+          size="sm"
+          className="w-full justify-start gap-2 h-9"
+          onClick={() => onView('settings')}
+        >
+          <SettingsIcon className="h-4 w-4" />
+          <span className="text-sm">Settings</span>
+        </Button>
+      </div>
+    </aside>
   )
 }
 
-export function StatusPill({ ok, okLabel, okIcon, badLabel, badIcon }: { ok: boolean; okLabel: string; okIcon: any; badLabel: string; badIcon: any }) {
-  const Icon = ok ? okIcon : badIcon
+function FlagshipBadge({ icon: Icon, label, description }: { icon: any; label: string; description: string }) {
   return (
-    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-medium border ${ok ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-zinc-100 border-zinc-300 text-zinc-500'}`}>
-      <Icon className="h-3 w-3" />
-      <span className="hidden sm:inline">{ok ? okLabel : badLabel}</span>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/40 cursor-help transition-colors">
+            <Icon className="h-3 w-3 text-primary flex-shrink-0" />
+            <span className="text-[10px] font-medium">{label}</span>
+            <BadgeHelp className="h-2.5 w-2.5 text-muted-foreground/50 ml-auto" />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-[260px] text-xs">
+          <div className="font-semibold mb-1">{label}</div>
+          <div className="text-[10px] leading-relaxed">{description}</div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
+function StatusPill({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${ok ? 'text-emerald-700' : 'text-zinc-500'}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${ok ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
+      {label}
     </div>
   )
 }
 
+// ============================================================================
+// FOOTER
+// ============================================================================
+
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-border/60 bg-card/50">
-      <div className="container mx-auto px-4 py-4 max-w-[1600px]">
+      <div className="px-6 py-3">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <Snowflake className="h-3.5 w-3.5 text-primary" />
-            <span><b className="text-foreground">ColdOps</b> v1.0 · White-label SaaS by Double Dot Solutions Sdn Bhd</span>
+            <span><b className="text-foreground">ColdOps</b> v2.0 · White-label SaaS by Double Dot Solutions Sdn Bhd</span>
           </div>
           <div className="flex items-center gap-3">
             <span>TNB Tariff: RM 0.509/kWh</span>
@@ -174,6 +206,10 @@ export function LoadingState() {
     </div>
   )
 }
+
+// ============================================================================
+// SHARED UI COMPONENTS
+// ============================================================================
 
 export function KpiCard({ icon: Icon, label, value, sub, tone }: { icon: any; label: string; value: string; sub: string; tone: 'ghost' | 'optimized' | 'active' | 'consolidation' }) {
   const tones = {
@@ -201,26 +237,7 @@ export function KpiCard({ icon: Icon, label, value, sub, tone }: { icon: any; la
 }
 
 export function RoiCard({ icon: Icon, label, value, sub, tone }: { icon: any; label: string; value: string; sub: string; tone: 'ghost' | 'optimized' | 'active' | 'consolidation' }) {
-  const tones = {
-    ghost: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', icon: 'text-red-500' },
-    optimized: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: 'text-emerald-500' },
-    active: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', icon: 'text-sky-500' },
-    consolidation: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: 'text-amber-500' },
-  }
-  const t = tones[tone]
-  return (
-    <Card className={`${t.bg} ${t.border} border`}>
-      <CardContent className="p-4">
-        <div className={`grid place-items-center h-8 w-8 rounded-lg bg-card/80 ${t.icon} mb-2`}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className={`text-2xl font-bold tracking-tight ${t.text}`}>{value}</div>
-        <div className="text-[11px] text-muted-foreground mt-0.5">{label}</div>
-        <Separator className="my-2" />
-        <div className="text-[11px] text-muted-foreground">{sub}</div>
-      </CardContent>
-    </Card>
-  )
+  return <KpiCard icon={Icon} label={label} value={value} sub={sub} tone={tone} />
 }
 
 export function Legend() {
@@ -283,9 +300,9 @@ export function SeverityTabs({ counts, active, onChange }: { counts: Record<stri
 export function ChannelIcon({ ch }: { ch: string }) {
   const map: Record<string, { icon: any; label: string }> = {
     DASHBOARD: { icon: Activity, label: 'Dashboard' },
-    SMS: { icon: Smartphone, label: 'SMS' },
-    WHATSAPP: { icon: MessageSquare, label: 'WhatsApp' },
-    EMAIL: { icon: Mail, label: 'Email' },
+    SMS: { icon: Server, label: 'SMS' },
+    WHATSAPP: { icon: Radio, label: 'WhatsApp' },
+    EMAIL: { icon: Radio, label: 'Email' },
   }
   const m = map[ch]
   if (!m) return null
@@ -327,6 +344,24 @@ export function ActiveSetbackCard({ setback }: { setback: ActiveSetback }) {
         <span>Step {setback.currentStep}/{setback.totalSteps}</span>
         <span>{setback.bms ? formatKW(setback.bms.powerKW) : '—'}</span>
       </div>
+    </div>
+  )
+}
+
+export function SectionHeader({ icon: Icon, title, description, flagship }: { icon: any; title: string; description: string; flagship?: string }) {
+  return (
+    <div className="mb-3">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-primary" />
+        <h3 className="text-base font-semibold">{title}</h3>
+        {flagship && (
+          <Badge className="text-[9px] bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+            <Target className="h-2.5 w-2.5 mr-1" />
+            {flagship}
+          </Badge>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground mt-0.5 ml-6">{description}</p>
     </div>
   )
 }
