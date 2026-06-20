@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import type { DashboardData, RoomWithBms, MeterData } from '@/lib/coldops/types'
 import { formatRM, formatKW, formatTemp } from '@/lib/coldops/ui'
+import { GlassCard } from '@/components/coldops/shared'
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────
 
@@ -22,18 +23,22 @@ function KpiCard({ icon: Icon, label, value, sub, accent }: {
   icon: any; label: string; value: string; sub: string; accent: 'emerald' | 'blue' | 'amber'
 }) {
   const colors = {
-    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'text-emerald-500', value: 'text-emerald-700' },
-    blue:    { bg: 'bg-sky-50',     border: 'border-sky-200',     icon: 'text-sky-500',     value: 'text-sky-700' },
-    amber:   { bg: 'bg-amber-50',   border: 'border-amber-200',   icon: 'text-amber-500',   value: 'text-amber-700' },
+    emerald: { iconBg: 'bg-emerald-50', icon: 'text-emerald-500', value: 'text-[#10B981]' },
+    blue:    { iconBg: 'bg-sky-50',     icon: 'text-sky-500',     value: 'text-[#0EA5E9]' },
+    amber:   { iconBg: 'bg-amber-50',   icon: 'text-amber-500',   value: 'text-[#F59E0B]' },
   }
   const c = colors[accent]
   return (
-    <div className={`rounded-xl border ${c.border} ${c.bg} p-5 space-y-2`}>
-      <div className={`h-9 w-9 rounded-lg bg-white/60 flex items-center justify-center ${c.icon}`}><Icon className="h-5 w-5" /></div>
-      <div className={`text-2xl font-bold tracking-tight ${c.value}`}>{value}</div>
-      <div className="text-xs text-muted-foreground font-medium">{label}</div>
-      <div className="text-[11px] text-muted-foreground">{sub}</div>
-    </div>
+    <GlassCard className="px-[28px] py-[24px] space-y-3 transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(0,0,0,0.10)] hover:border-white">
+      <div className={`h-10 w-10 rounded-[10px] ${c.iconBg} flex items-center justify-center ${c.icon}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <div className={`text-[40px] font-[800] leading-[1.1] tracking-tight text-[#111827]`}>{value}</div>
+        <div className="text-[11px] font-[600] tracking-[0.08em] uppercase text-[#9CA3AF] mt-2">{label}</div>
+      </div>
+      <div className="text-[12px] text-[#6B7280]">{sub}</div>
+    </GlassCard>
   )
 }
 
@@ -102,66 +107,82 @@ function statusLabel(status: string) {
 function TempGrid({ rooms }: { rooms: (RoomWithBms & { recommendedSetpoint?: number | null; aiReason?: string | null; lastStockType?: string | null })[] }) {
   if (!rooms.length) return <div className="h-32 grid place-items-center text-sm text-muted-foreground">No room data.</div>
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       {rooms.map(r => {
-        const sl = statusLabel(r.status)
-        const tempOk = r.bms ? r.bms.currentTemp >= r.minSafeTemp && r.bms.currentTemp <= r.maxSafeTemp : true
         const hasRec = r.recommendedSetpoint !== null && r.recommendedSetpoint !== undefined
         const delta = hasRec ? +(r.recommendedSetpoint! - (r.bms?.setpoint ?? r.targetTemp)).toFixed(1) : 0
         const currentDisplay = r.bms?.setpoint ?? r.targetTemp
-        return (
-          <div key={r.id} className="rounded-xl border border-border bg-card p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-sm">{r.code}</span>
-              <span className={`h-2 w-2 rounded-full ${statusDot(r.status)}`} />
-            </div>
-            <div className="text-[10px] text-muted-foreground truncate">{r.name}</div>
+        
+        const isGhost = r.status === 'GHOST_LOAD'
+        const badgeStyle = isGhost
+          ? "bg-[#FEF2F2] text-[#EF4444] border-[#FECACA]"
+          : "bg-[#F0FDF4] text-[#10B981] border-[#BBF7D0]"
+        const dotStyle = isGhost 
+          ? "bg-[#EF4444] shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" 
+          : "bg-[#10B981]"
 
-            <div className="flex items-end justify-between">
-              <div>
-                <div className={`text-xl font-bold font-mono ${!tempOk ? 'text-red-600' : ''}`}>
+        return (
+          <div key={r.id} className="bg-[rgba(255,255,255,0.75)] backdrop-blur-[8px] border border-[rgba(255,255,255,0.95)] rounded-[14px] shadow-[0_2px_12px_rgba(0,0,0,0.05)] px-[20px] py-[18px] transition-all duration-200 ease hover:-translate-y-[3px] hover:shadow-[0_8px_24px_rgba(0,0,0,0.09)] flex flex-col justify-between">
+            
+            <div>
+              <div className="flex items-center justify-between mb-[2px]">
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-[700] text-[#111827]">{r.code}</span>
+                  <span className={`h-[8px] w-[8px] rounded-full ${dotStyle}`} />
+                </div>
+                <div className={`border rounded-[6px] text-[10px] font-[600] px-[8px] py-[2px] ${badgeStyle}`}>
+                  {isGhost ? 'Ghost Load' : 'Active'}
+                </div>
+              </div>
+              <div className="text-[12px] text-[#6B7280] mb-[12px] truncate">{r.name}</div>
+
+              <div className="mb-[12px]">
+                <div className={`text-[26px] font-[800] text-[#111827] leading-none mb-[4px]`}>
                   {r.bms ? formatTemp(r.bms.currentTemp) : '—'}
                 </div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[11px] text-[#9CA3AF]">
                   setpoint {currentDisplay.toFixed(1)}°C
                 </div>
               </div>
-              <Badge variant="outline" className={`text-[9px] ${sl.cls}`}>{sl.label}</Badge>
-            </div>
 
-            {/* AI recommended setpoint */}
-            {hasRec && (
-              <div className={`rounded-md px-2 py-1.5 flex items-center justify-between gap-1 ${
-                Math.abs(delta) < 0.5 ? 'bg-muted/40 border border-border/40'
-                : delta > 0 ? 'bg-amber-50 border border-amber-200'
-                : 'bg-sky-50 border border-sky-200'
-              }`}>
-                <div className="flex items-center gap-1">
-                  {Math.abs(delta) < 0.5
-                    ? <Minus className="h-3 w-3 text-muted-foreground" />
-                    : delta > 0
-                    ? <ArrowUp className="h-3 w-3 text-amber-600" />
-                    : <ArrowDown className="h-3 w-3 text-sky-600" />
-                  }
-                  <span className={`text-[10px] font-semibold ${
-                    Math.abs(delta) < 0.5 ? 'text-muted-foreground'
-                    : delta > 0 ? 'text-amber-700' : 'text-sky-700'
-                  }`}>
-                    AI: {r.recommendedSetpoint!.toFixed(1)}°C
+              {/* AI recommended setpoint */}
+              {hasRec && (
+                <div className={`rounded-[8px] px-2.5 py-2 flex items-center justify-between gap-1 mb-[12px] ${
+                  Math.abs(delta) < 0.5 ? 'bg-[#F9FAFB] border border-[#E5E7EB]'
+                  : delta > 0 ? 'bg-amber-50 border border-amber-200'
+                  : 'bg-sky-50 border border-sky-200'
+                }`}>
+                  <div className="flex items-center gap-1.5">
+                    {Math.abs(delta) < 0.5
+                      ? <Minus className="h-3 w-3 text-[#9CA3AF]" />
+                      : delta > 0
+                      ? <ArrowUp className="h-3 w-3 text-[#EF4444]" />
+                      : <ArrowDown className="h-3 w-3 text-[#10B981]" />
+                    }
+                    <span className={`text-[11px] font-[600] tracking-wide ${
+                      Math.abs(delta) < 0.5 ? 'text-[#6B7280]'
+                      : delta > 0 ? 'text-amber-700' : 'text-sky-700'
+                    }`}>
+                      AI: {r.recommendedSetpoint!.toFixed(1)}°C
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-[700] ${Math.abs(delta) < 0.5 ? 'text-[#9CA3AF]' : delta > 0 ? 'text-[#EF4444]' : 'text-[#10B981]'}`}>
+                    {Math.abs(delta) < 0.5 ? 'none' : `${delta > 0 ? '+' : ''}${delta}°C`}
                   </span>
                 </div>
-                <span className={`text-[9px] ${Math.abs(delta) < 0.5 ? 'text-muted-foreground' : delta > 0 ? 'text-amber-600' : 'text-sky-600'}`}>
-                  {Math.abs(delta) < 0.5 ? 'no change' : `${delta > 0 ? '+' : ''}${delta}°C`}
-                </span>
-              </div>
-            )}
-
-            <div>
-              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                <span>Stock</span><span>{r.utilizationPct}%</span>
-              </div>
-              <Progress value={r.utilizationPct} className="h-1.5" />
+              )}
             </div>
+
+            <div className="pt-1 mt-auto">
+              <div className="flex justify-between items-center mb-[4px]">
+                <span className="text-[11px] font-[500] text-[#6B7280]">Stock</span>
+                <span className="text-[12px] font-[700] text-[#111827]">{r.utilizationPct}%</span>
+              </div>
+              <div className="h-[5px] w-full bg-[#E5E7EB] rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-[#0EA5E9] to-[#38BDF8]" style={{ width: `${r.utilizationPct}%` }} />
+              </div>
+            </div>
+
           </div>
         )
       })}
@@ -219,12 +240,14 @@ function ActivityFeed() {
   }, [])
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <Activity className="h-4 w-4 text-primary" />
+    <GlassCard className="px-[32px] py-[28px]">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-[36px] w-[36px] rounded-[10px] bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE] flex items-center justify-center flex-shrink-0">
+          <Activity className="h-5 w-5 text-[#0EA5E9]" />
+        </div>
         <div>
-          <h2 className="text-sm font-semibold">Recent System Activity</h2>
-          <p className="text-[11px] text-muted-foreground">Last 48 hours — all approved actions and system events</p>
+          <h2 className="text-[16px] font-[700] text-[#111827]">Recent System Activity</h2>
+          <p className="text-[12px] text-[#9CA3AF]">Last 48 hours — all approved actions and system events</p>
         </div>
       </div>
 
@@ -235,26 +258,27 @@ function ActivityFeed() {
           No activity yet. Approve actions in Step 2 to see events here.
         </div>
       ) : (
-        <div className="space-y-2">
-          {events.slice(0, visibleCount).map(ev => {
-            const Icon = EVENT_ICONS[ev.type] ?? Clock
-            const colorCls = EVENT_COLORS[ev.type] ?? 'text-zinc-500 bg-zinc-50 border-zinc-200'
+        <div className="flex flex-col">
+          {events.slice(0, visibleCount).map((ev, i) => {
+            const isLast = i === visibleCount - 1 && visibleCount >= events.length
             return (
-              <div key={ev.id} className="flex items-start gap-3">
-                <div className={`mt-0.5 flex-shrink-0 h-6 w-6 rounded-full border flex items-center justify-center ${colorCls}`}>
-                  <Icon className="h-3 w-3" />
+              <div key={ev.id} className={`flex items-start sm:items-center gap-4 py-[14px] ${!isLast ? 'border-b border-[#F3F4F6]' : ''}`}>
+                <div className="flex-shrink-0 h-[32px] w-[32px] rounded-full bg-[#F0FDF4] flex items-center justify-center mt-0.5 sm:mt-0">
+                  <CheckCircle2 className="h-4 w-4 text-[#10B981]" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold truncate">{ev.title}</p>
-                    <span className="text-[10px] text-muted-foreground flex-shrink-0">{timeAgo(ev.timestamp)}</span>
+                <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between">
+                  <div>
+                    <div className="text-[13px] font-[600] text-[#111827] truncate">{ev.title}</div>
+                    <div className="text-[12px] text-[#9CA3AF] mt-[2px] truncate">{ev.description}</div>
+                    {ev.rmImpact > 0 && (
+                      <div className="text-[12px] font-[600] text-[#10B981] mt-[4px]">
+                        +{formatRM(ev.rmImpact)} saved
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate">{ev.description}</p>
-                  {ev.rmImpact > 0 && (
-                    <span className="inline-block mt-0.5 text-[10px] text-emerald-600 font-semibold">
-                      +{formatRM(ev.rmImpact)} saved
-                    </span>
-                  )}
+                  <div className="text-[11px] text-[#9CA3AF] flex-shrink-0 self-start sm:self-center sm:ml-4 mt-2 sm:mt-0">
+                    {timeAgo(ev.timestamp)}
+                  </div>
                 </div>
               </div>
             )
@@ -271,7 +295,7 @@ function ActivityFeed() {
           )}
         </div>
       )}
-    </div>
+    </GlassCard>
   )
 }
 
@@ -294,76 +318,88 @@ export function ResultsDashboard({
   const kwhSaved = savings.thisMonthRM > 0 ? (savings.thisMonthRM / 0.509).toFixed(0) : '0'
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Step 3 — Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+    <div className="space-y-8 max-w-[1200px] mx-auto pb-12">
+      <div className="mb-8">
+        <div className="flex items-center gap-4">
+          <h1 className="text-[28px] font-bold text-[#111827]">Step 3 — Dashboard</h1>
+          <div className="flex items-center gap-1.5 bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-1 rounded-full">
+            <div className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981]">Live Data</span>
+          </div>
+        </div>
+        <p className="text-[14px] text-[#6B7280] leading-[1.6] mt-1">
           Live summary of energy savings and AI-recommended cooler adjustments.
         </p>
       </div>
 
       {/* Hero KPI row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <KpiCard icon={Zap}         label="Total Energy Saved (This Month)" value={`${kwhSaved} kWh`} sub={`Tonight: ${(savings.tonightRM / 0.509).toFixed(1)} kWh`} accent="emerald" />
         <KpiCard icon={TrendingDown} label="Total Money Saved (This Month)"  value={formatRM(savings.thisMonthRM)} sub={`This week: ${formatRM(savings.thisWeekRM)}`} accent="blue" />
         <KpiCard icon={Leaf}         label="CO₂ Avoided"                     value={`${savings.co2Tonnes.toFixed(2)} t`} sub={`≈ ${(savings.co2Tonnes * 4.5).toFixed(0)} trees saved`} accent="amber" />
       </div>
 
       {/* 2-col grid */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart2 className="h-4 w-4 text-primary" />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <GlassCard className="p-[28px]">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-8 w-8 rounded-[8px] bg-primary/10 flex items-center justify-center">
+              <BarChart2 className="h-4 w-4 text-primary" />
+            </div>
             <div>
-              <h2 className="text-sm font-semibold">Cooler Energy Consumption</h2>
-              <p className="text-[11px] text-muted-foreground">Ranked by current power draw</p>
+              <h2 className="text-[15px] font-semibold text-[#111827]">Cooler Energy Consumption</h2>
+              <p className="text-[12px] text-[#6B7280]">Ranked by current power draw</p>
             </div>
           </div>
           <CoolerEnergyChart meterData={meterData} />
-        </div>
+        </GlassCard>
 
-        <div className="rounded-xl border border-border bg-card p-5 space-y-5">
+        <GlassCard className="p-[28px] space-y-6">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-8 w-8 rounded-[8px] bg-primary/10 flex items-center justify-center">
+                <Zap className="h-4 w-4 text-primary" />
+              </div>
               <div>
-                <h2 className="text-sm font-semibold">Top Energy Consumers</h2>
-                <p className="text-[11px] text-muted-foreground">Equipment ranked by kW draw</p>
+                <h2 className="text-[15px] font-semibold text-[#111827]">Top Energy Consumers</h2>
+                <p className="text-[12px] text-[#6B7280]">Equipment ranked by kW draw</p>
               </div>
             </div>
             <TopConsumers meterData={meterData} />
           </div>
-          <div className="border-t border-border/60 pt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-muted/40 p-3 text-center">
-              <div className="text-xl font-bold text-red-600">{kpis.ghostLoadCount}</div>
-              <div className="text-[11px] text-muted-foreground">Ghost Load Events</div>
+          <div className="border-t border-[#E5E7EB] pt-6 grid grid-cols-2 gap-4">
+            <div className="rounded-[12px] bg-white/50 border border-[rgba(255,255,255,0.8)] shadow-sm p-4 text-center">
+              <div className="text-[28px] font-bold text-red-500 leading-none">{kpis.ghostLoadCount}</div>
+              <div className="text-[11px] font-semibold tracking-wide uppercase text-[#6B7280] mt-1.5">Ghost Load Events</div>
             </div>
-            <div className="rounded-lg bg-muted/40 p-3 text-center">
-              <div className="text-xl font-bold">{kpis.consolidationCandidateCount}</div>
-              <div className="text-[11px] text-muted-foreground">Consolidation Candidates</div>
+            <div className="rounded-[12px] bg-white/50 border border-[rgba(255,255,255,0.8)] shadow-sm p-4 text-center">
+              <div className="text-[28px] font-bold text-[#111827] leading-none">{kpis.consolidationCandidateCount}</div>
+              <div className="text-[11px] font-semibold tracking-wide uppercase text-[#6B7280] mt-1.5">Consolidations</div>
             </div>
           </div>
-        </div>
+        </GlassCard>
       </div>
 
       {/* Temperature grid with AI recommendations */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Thermometer className="h-4 w-4 text-primary" />
+      <GlassCard className="px-[32px] py-[28px]">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-[36px] w-[36px] rounded-[10px] bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE] flex items-center justify-center flex-shrink-0">
+            <Thermometer className="h-5 w-5 text-[#0EA5E9]" />
+          </div>
           <div>
-            <h2 className="text-sm font-semibold">Temperature Overview — All Coolers</h2>
-            <p className="text-[11px] text-muted-foreground">
+            <h2 className="text-[16px] font-[700] text-[#111827]">Temperature Overview</h2>
+            <p className="text-[12px] text-[#9CA3AF]">
               Current temp · setpoint · AI-recommended setpoint · utilisation
             </p>
           </div>
-          <div className="ml-auto flex items-center gap-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-sky-500" />AI suggests lower</span>
-            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-amber-500" />AI suggests higher</span>
-            <span className="flex items-center gap-1"><Minus className="h-3 w-3 text-muted-foreground" />No change</span>
+          <div className="ml-auto hidden sm:flex items-center gap-4 text-[11px] font-[500] text-[#6B7280]">
+            <span className="flex items-center gap-1.5"><ArrowDown className="h-3 w-3 text-[#10B981]" />Lower</span>
+            <span className="flex items-center gap-1.5"><ArrowUp className="h-3 w-3 text-[#EF4444]" />Higher</span>
+            <span className="flex items-center gap-1.5"><Minus className="h-3 w-3 text-[#9CA3AF]" />No change</span>
           </div>
         </div>
         <TempGrid rooms={rooms as any} />
-      </div>
+      </GlassCard>
 
       {/* Recent activity feed */}
       <ActivityFeed />

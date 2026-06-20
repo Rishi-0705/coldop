@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
 import {
   ThermometerSun, Package, Check, X, Loader2, Zap,
-  CheckCircle2, ChevronRight, SkipForward
+  CheckCircle2, ChevronRight, SkipForward, ArrowRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import {
 } from 'recharts'
 import type { Notification } from '@/lib/coldops/types'
 import { formatRM } from '@/lib/coldops/ui'
+import { GlassCard } from '@/components/coldops/shared'
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -111,15 +112,15 @@ function ActionCard({
       )}
 
       {/* Card body */}
-      <div className="h-full rounded-2xl border border-border bg-card shadow-lg overflow-hidden select-none">
+      <div className="h-full overflow-hidden select-none flex flex-col p-0 bg-white border border-[#E5E7EB] rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
         {/* Color bar */}
-        <div className={`h-1 w-full ${isConsolidation ? 'bg-amber-500' : 'bg-primary'}`} />
+        <div className={`h-1 w-full flex-shrink-0 ${isConsolidation ? 'bg-[#F59E0B]' : 'bg-[#0EA5E9]'}`} />
 
         <div className="p-6 h-full flex flex-col gap-4">
           {/* Icon + type label */}
           <div className="flex items-center gap-3">
-            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-              isConsolidation ? 'bg-amber-50 text-amber-600' : 'bg-primary/10 text-primary'
+            <div className={`h-10 w-10 rounded-[10px] flex items-center justify-center ${
+              isConsolidation ? 'bg-[#FFFBEB] text-[#D97706]' : 'bg-[#EFF6FF] text-[#0EA5E9]'
             }`}>
               {isConsolidation
                 ? <Package className="h-5 w-5" />
@@ -127,9 +128,11 @@ function ActionCard({
               }
             </div>
             <div>
-              <Badge variant="outline" className="text-[10px]">
+              <span className={`px-2 py-1 rounded-[6px] text-[10px] font-semibold ${
+                isConsolidation ? 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]' : 'bg-[#EFF6FF] text-[#0EA5E9] border border-[#BAE6FD]'
+              }`}>
                 {isConsolidation ? 'Stock Consolidation' : 'Temperature Adjustment'}
-              </Badge>
+              </span>
               <div className="text-[11px] text-muted-foreground mt-0.5">
                 {notif.room ? `Room: ${notif.room.code} — ${notif.room.name}` : 'All Rooms'}
               </div>
@@ -273,59 +276,69 @@ export function ActionMenuView({
   const allDone = queue.length === 0
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-[860px] mx-auto space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Step 2 — AI Actions</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-[28px] font-bold text-[#111827]">Step 2 — AI Actions</h1>
+          <p className="text-[14px] text-[#6B7280] leading-[1.6] mt-1">
             Review each AI recommendation. Swipe right to approve, left to deny.
           </p>
         </div>
 
         {/* Auto-Pilot toggle */}
-        <div className="flex-shrink-0 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5">
+        <div className="flex-shrink-0 flex items-center gap-3 bg-white border border-[#E5E7EB] rounded-[12px] px-[20px] py-[12px]">
           <div className="text-right">
-            <div className="text-xs font-semibold">Auto-Pilot</div>
-            <div className="text-[10px] text-muted-foreground">Auto-approve actions</div>
+            <div className="text-[13px] font-semibold text-[#111827]">Auto-Pilot</div>
+            <div className="text-[11px] text-[#9CA3AF]">Auto-approve actions</div>
           </div>
           <Switch
             checked={autoPilot}
             onCheckedChange={setAutoPilot}
             id="autopilot-toggle"
+            className="data-[state=checked]:bg-[#0EA5E9] data-[state=unchecked]:bg-[#D1D5DB]"
           />
         </div>
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg border border-border bg-card px-4 py-3 text-center">
-          <div className="text-2xl font-bold">{queue.length}</div>
-          <div className="text-[11px] text-muted-foreground">Pending</div>
+      <div className="grid grid-cols-3 gap-5">
+        <div className="bg-white/60 backdrop-blur-[12px] border border-[rgba(255,255,255,0.9)] rounded-[16px] shadow-[0_4px_24px_rgba(0,0,0,0.06)] px-[32px] py-[28px] transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(0,0,0,0.10)] hover:border-white">
+          <div className="text-[40px] font-[800] text-[#111827] leading-none">{queue.length}</div>
+          <div className="text-[11px] font-[600] tracking-[0.08em] uppercase text-[#9CA3AF] mt-1.5">
+            Pending
+          </div>
         </div>
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
-          <div className="text-2xl font-bold text-emerald-600">{approved}</div>
-          <div className="text-[11px] text-muted-foreground">Approved</div>
+        <div className="bg-white/60 backdrop-blur-[12px] border border-[rgba(255,255,255,0.9)] rounded-[16px] shadow-[0_4px_24px_rgba(0,0,0,0.06)] px-[32px] py-[28px] transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(0,0,0,0.10)] hover:border-white">
+          <div className="text-[40px] font-[800] text-[#10B981] leading-none">{approved}</div>
+          <div className="text-[11px] font-[600] tracking-[0.08em] uppercase text-[#9CA3AF] mt-1.5">
+            Approved
+          </div>
         </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center">
-          <div className="text-2xl font-bold text-red-500">{denied}</div>
-          <div className="text-[11px] text-muted-foreground">Denied</div>
+        <div className="bg-white/60 backdrop-blur-[12px] border border-[rgba(255,255,255,0.9)] rounded-[16px] shadow-[0_4px_24px_rgba(0,0,0,0.06)] px-[32px] py-[28px] transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(0,0,0,0.10)] hover:border-white">
+          <div className="text-[40px] font-[800] text-[#EF4444] leading-none">{denied}</div>
+          <div className="text-[11px] font-[600] tracking-[0.08em] uppercase text-[#9CA3AF] mt-1.5">
+            Denied
+          </div>
         </div>
       </div>
 
       {/* Card stack */}
       {allDone ? (
-        <div className="rounded-2xl border border-border bg-card p-12 flex flex-col items-center gap-4 text-center">
-          <CheckCircle2 className="h-14 w-14 text-emerald-500" />
-          <div>
-            <p className="text-lg font-bold">All actions reviewed!</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {approved} approved, {denied} skipped. Check the Dashboard to see your savings.
-            </p>
+        <div className="bg-white/60 backdrop-blur-[12px] border border-[rgba(255,255,255,0.9)] rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.06)] px-[40px] py-[64px] flex flex-col items-center text-center">
+          <div className="w-[56px] h-[56px] rounded-[14px] bg-gradient-to-br from-[#ECFDF5] to-[#D1FAE5] flex items-center justify-center mb-2">
+            <Check className="text-[#10B981] h-[26px] w-[26px]" strokeWidth={2.5} />
           </div>
-          <Button onClick={onViewDashboard} className="mt-2">
-            View Dashboard <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
+          <p className="text-[22px] font-bold text-[#111827] mt-[20px]">All actions reviewed!</p>
+          <p className="text-[14px] text-[#6B7280] leading-[1.6] mt-2 mb-8">
+            {approved} approved · {denied} skipped — view your savings on the Dashboard
+          </p>
+          <button 
+            onClick={onViewDashboard} 
+            className="bg-gradient-to-br from-[#0EA5E9] to-[#0284C7] text-white rounded-[10px] px-[28px] py-[12px] font-semibold text-[14px] transition-all duration-200 hover:opacity-90 hover:-translate-y-[1px] hover:shadow-[0_6px_20px_rgba(14,165,233,0.35)] flex items-center justify-center"
+          >
+            View Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+          </button>
         </div>
       ) : (
         <>
@@ -350,7 +363,7 @@ export function ActionMenuView({
             <Button
               variant="outline"
               size="lg"
-              className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-[10px] font-bold"
               onClick={() => current && doDeny(current.id)}
               disabled={!current || !!acting}
             >
@@ -369,7 +382,7 @@ export function ActionMenuView({
             </Button>
             <Button
               size="lg"
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              className="flex-1 bg-[#0EA5E9] hover:bg-[#0284C7] text-white font-bold rounded-[10px]"
               onClick={() => current && doApprove(current.id)}
               disabled={!current || !!acting}
             >
